@@ -4,15 +4,63 @@ Embedding module for document processing and vector generation.
 import os
 from typing import List, Tuple
 from sentence_transformers import SentenceTransformer
+from langchain_core.embeddings import Embeddings
+from langchain_experimental.text_splitter import SemanticChunker
 import config
+
+
+class SentenceTransformerEmbeddings(Embeddings):
+    """Wrapper around SentenceTransformer to implement LangChain Embeddings interface.
+    
+    This avoids the TypeError('Protocols cannot be instantiated') that occurs
+    when using HuggingFaceEmbeddings from langchain_community.
+    """
+
+    def __init__(self, model: SentenceTransformer):
+        self.model = model
+
+    def embed_documents(self, texts: List[str]) -> List[List[float]]:
+        """Embed a list of documents."""
+        embeddings = self.model.encode(texts, convert_to_numpy=True)
+        return [emb.tolist() for emb in embeddings]
+
+    def embed_query(self, text: str) -> List[float]:
+        """Embed a single query text."""
+        embedding = self.model.encode(text, convert_to_numpy=True)
+        return embedding.tolist()
 
 
 class EmbeddingEngine:
     """Handles text embedding and document processing."""
     
     def __init__(self):
-        """Initialize the embedding model."""
+        """Initialize the embedding model and semantic chunker."""
         self.model = SentenceTransformer(config.EMBEDDING_MODEL)
+        # Use a LangChain-compatible embeddings wrapper to avoid
+        # the HuggingFaceEmbeddings Protocol instantiation bug
+        embeddings = SentenceTransformerEmbeddings(self.model)
+        self.text_splitter = SemanticChunker(
+            embeddings,
+            breakpoint_threshold_type="percentile"
+        )
+
+    def semantic_chunk_text(self, text: str) -> List[str]:
+        """
+        Split text into semantic chunks using SemanticChunker.
+        
+        Leverages LangChain's SemanticChunker which uses cosine similarity
+        between consecutive sentences to detect topic boundaries.
+        
+        Args:
+            text: Text to split
+            
+        Returns:
+            List of text chunks
+        """
+        if not text.strip():
+            return []
+        documents = self.text_splitter.create_documents([text])
+        return [doc.page_content for doc in documents]
     
     def chunk_text(self, text: str, chunk_size: int = config.CHUNK_SIZE, 
                    overlap: int = config.CHUNK_OVERLAP) -> List[str]:
@@ -90,7 +138,7 @@ class EmbeddingEngine:
         Returns:
             List of (chunk, embedding) tuples
         """
-        chunks = self.chunk_text(text)
+        chunks = self.semantic_chunk_text(text)
         if not chunks:
             return []
         
@@ -106,6 +154,11 @@ class DocumentProcessor:
         """Read plain text file."""
         with open(file_path, 'r', encoding='utf-8') as f:
             return f.read()
+
+    @classmethod
+    def read_markdown(cls, file_path: str) -> str:
+        """Read Markdown — treat as plain text (the chunker handles prose fine)."""
+        return cls.read_txt(file_path)
     
     @staticmethod
     def read_pdf(file_path: str) -> str:
@@ -142,6 +195,8 @@ class DocumentProcessor:
         
         if ext == '.txt':
             return cls.read_txt(file_path)
+        elif ext in ('.md', '.markdown'):
+            return cls.read_markdown(file_path)
         elif ext == '.pdf':
             return cls.read_pdf(file_path)
         elif ext == '.docx':

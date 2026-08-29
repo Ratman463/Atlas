@@ -1,199 +1,218 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EasyRag - The RAG System for Teams</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <title>知图 · 本地知识库 · AI 问答 · 文档生成</title>
+    <meta name="description" content="知图（Atlas）：一个轻量本地知识库 + 在线 AI 问答 + Word 文档生成工具，自带 OpenAI 兼容 API Key。搜索知识库、问文档、一键出报告，全部本地跑。">
     <link rel="stylesheet" href="/static/css/main.css"/>
-    <script src="/static/js/main.js" defer></script>
 </head>
 <body>
-    <!-- Top Navigation Bar -->
-    <nav class="navbar">
-        <div class="nav-left">
-            <a href="#" class="nav-logo">
-                <span class="logo-icon"></span>
-                <span class="logo-text">EasyRag</span>
-            </a>
-        </div>
-        <div class="nav-center">
-            <a href="#" class="nav-link active" data-section="upload">Upload</a>
-            <a href="#" class="nav-link" data-section="documents">Documents</a>
-            <a href="#" class="nav-link" data-section="query">Query</a>
-            <a href="#" class="nav-link" data-section="results">Results</a>
-        </div>
-        <div class="nav-right">
-            <a href="https://github.com" class="nav-link" target="_blank">GitHub</a>
-            <a href="#" class="nav-btn">Get Started</a>
-        </div>
-    </nav>
 
-    <!-- Hero Section -->
-    <!-- <section class="hero">
-        <div class="hero-content">
-            <h1 class="hero-title">The knowledge retrieval<br>system for modern teams</h1>
-            <p class="hero-subtitle">Purpose-built for document search and retrieval. Powered by vector embeddings and semantic search.</p>
-            <a href="#" class="hero-cta" onclick="document.getElementById('query-input').focus(); return false;">
-                <span class="cta-dot"></span>
-                <span class="cta-text">Start querying your documents</span>
-                <span class="cta-arrow">→</span>
-            </a>
-        </div>
-    </section> -->
+<!-- ===================== 顶部导航 ===================== -->
+<header class="nav">
+    <div class="nav-inner">
+        <a href="#" class="nav-logo" data-tab="knowledge">
+            <svg class="logo-mark" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+                <path fill="currentColor" d="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z"/>
+            </svg>
+            <span>知图</span>
+        </a>
+        <nav class="nav-tabs">
+            <button class="nav-tab is-active" data-tab="knowledge">知识库</button>
+            <button class="nav-tab" data-tab="ask">智能问答</button>
+            <button class="nav-tab" data-tab="generate">文档生成</button>
+        </nav>
+        <button class="nav-settings" id="open-settings" title="配置 API Key">
+            <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+                <path fill="none" stroke="currentColor" stroke-width="1.5"
+                      d="M12 15.5a3.5 3.5 0 100-7 3.5 3.5 0 000 7z"/>
+                <path fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
+                      d="M19.4 15a1.7 1.7 0 00.3 1.9l.1.1a2 2 0 11-2.9 2.9l-.1-.1a1.7 1.7 0 00-1.9-.3 1.7 1.7 0 00-1 1.5V21a2 2 0 01-4 0v-.1a1.7 1.7 0 00-1.1-1.5 1.7 1.7 0 00-1.9.3l-.1.1a2 2 0 11-2.9-2.9l.1-.1a1.7 1.7 0 00.3-1.9 1.7 1.7 0 00-1.5-1H3a2 2 0 010-4h.1A1.7 1.7 0 004.6 9a1.7 1.7 0 00-.3-1.9l-.1-.1a2 2 0 112.9-2.9l.1.1a1.7 1.7 0 001.9.3H9a1.7 1.7 0 001-1.5V3a2 2 0 014 0v.1a1.7 1.7 0 001 1.5 1.7 1.7 0 001.9-.3l.1-.1a2 2 0 112.9 2.9l-.1.1a1.7 1.7 0 00-.3 1.9V9a1.7 1.7 0 001.5 1H21a2 2 0 010 4h-.1a1.7 1.7 0 00-1.5 1z"/>
+            </svg>
+        </button>
+    </div>
+</header>
 
-    <!-- Main Interface -->
-    <main class="main-interface">
-        <!-- Left Sidebar -->
-        <aside class="sidebar">
-            <div class="sidebar-header">
-                <div class="sidebar-logo">
-                    <span class="logo-icon-sm"></span>
-                    <span>EasyRag</span>
-                    <svg class="dropdown-arrow" width="12" height="12" viewBox="0 0 12 12" fill="none">
-                        <path d="M3 5L6 8L9 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-                    </svg>
-                </div>
-                <div class="sidebar-actions">
-                    <button class="icon-btn" title="Search" onclick="document.getElementById('query-input').focus()">
-                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                            <circle cx="7" cy="7" r="4.5" stroke="currentColor" stroke-width="1.5"/>
-                            <path d="M10.5 10.5L14 14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-                        </svg>
-                    </button>
-                    <button class="icon-btn" title="Upload" onclick="document.getElementById('file-input').click()">
-                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                            <path d="M8 3V11M8 3L5 6M8 3L11 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                            <path d="M3 11V13H13V11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                        </svg>
-                    </button>
-                </div>
+<main id="app">
+
+    <!-- ===================== Tab 1: 知识库 ===================== -->
+    <section class="tab is-active" data-tab="knowledge">
+        <div class="container">
+            <div class="hero">
+                <h1 class="hero-title">知识库。</h1>
+                <p class="hero-sub">把你手头的文档丢进来。PDF、Word、TXT、Markdown 都行。<br/>系统会自动切块、向量化，留着给你提问和生成文档用。</p>
             </div>
 
-            <nav class="sidebar-nav">
-                <a href="#" class="sidebar-item" data-section="upload" onclick="switchSection('upload')">
-                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                        <path d="M8 2V10M8 2L5 5M8 2L11 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                        <path d="M3 10V14H13V10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            <div class="card upload-card">
+                <label class="dropzone" id="dropzone">
+                    <input type="file" id="file-input" multiple
+                           accept=".pdf,.txt,.docx,.md,.markdown" hidden>
+                    <svg viewBox="0 0 48 48" width="44" height="44" aria-hidden="true">
+                        <path fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"
+                              stroke-linejoin="round" d="M24 6v28M12 18 24 6l12 12M8 38v4a2 2 0 0 0 2 2h28a2 2 0 0 0 2-2v-4"/>
                     </svg>
-                    <span>Upload</span>
-                </a>
-                <a href="#" class="sidebar-item" data-section="documents" onclick="switchSection('documents')">
-                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                        <rect x="3" y="2" width="10" height="12" rx="2" stroke="currentColor" stroke-width="1.5"/>
-                        <path d="M6 5H10M6 8H10M6 11H8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-                    </svg>
-                    <span>Documents</span>
-                </a>
-                <a href="#" class="sidebar-item" data-section="query" onclick="switchSection('query')">
-                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                        <circle cx="7" cy="7" r="4.5" stroke="currentColor" stroke-width="1.5"/>
-                        <path d="M10.5 10.5L14 14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-                    </svg>
-                    <span>Query</span>
-                </a>
-                <a href="#" class="sidebar-item" data-section="results" onclick="switchSection('results')">
-                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                        <path d="M3 8H13M3 4H13M3 12H9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-                    </svg>
-                    <span>Results</span>
-                </a>
-            </nav>
+                    <span class="dropzone-title">拖拽文件到这里，或点击选择</span>
+                    <span class="dropzone-hint">支持 PDF · DOCX · TXT · MD · 单次最多 50&nbsp;MB</span>
+                </label>
+                <div id="upload-status" class="upload-status" hidden></div>
+            </div>
 
-
-
-            <div class="sidebar-footer">
-                <div class="sidebar-status" id="sidebar-status">
-                    <span class="status-dot"></span>
-                    <span>Ready</span>
+            <div class="card list-card">
+                <div class="list-head">
+                    <h2 class="list-title">文档列表</h2>
+                    <span class="list-meta" id="docs-meta">加载中…</span>
+                </div>
+                <div class="list-body" id="docs-list">
+                    <div class="empty">还没有文档。先上传一份试试。</div>
                 </div>
             </div>
-        </aside>
+        </div>
+    </section>
 
-        <!-- Content Area -->
-        <div class="content-area">
-            <!-- Upload Section -->
-            <section class="content-section active" id="section-upload">
-                <div class="section-header">
-                    <h2 class="section-title">Upload Documents</h2>
-                    <div class="section-counter" id="upload-counter"></div>
-                </div>
-                <div class="section-body">
-                    <div class="upload-zone" id="upload-area">
-                        <div class="upload-zone-content">
-                            <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
-                                <rect x="4" y="8" width="40" height="32" rx="4" stroke="#555" stroke-width="2"/>
-                                <path d="M24 18V30M24 18L18 24M24 18L30 24" stroke="#555" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                            </svg>
-                            <p class="upload-zone-text">Drop files here or click to browse</p>
-                            <p class="upload-zone-hint">PDF, TXT, DOCX supported</p>
+    <!-- ===================== Tab 2: 智能问答 ===================== -->
+    <section class="tab" data-tab="ask">
+        <div class="container container-narrow">
+            <div class="hero hero-sm">
+                <h1 class="hero-title">问知识库一句话。</h1>
+                <p class="hero-sub">基于你的文档检索 + 大模型综合回答，逐字流式输出。<br/>每条回复都会标注来源片段，方便核对。</p>
+            </div>
+
+            <div class="chat-window card">
+                <div class="chat-thread" id="chat-thread">
+                    <div class="chat-empty" id="chat-empty">
+                        <div class="chat-empty-icon">✦</div>
+                        <p>提问吧。我会先去翻你的知识库。</p>
+                        <div class="chat-suggest">
+                            <button class="chip" data-q="总结一下知识库里都讲了什么">总结一下知识库</button>
+                            <button class="chip" data-q="列出所有提到的核心概念">列出核心概念</button>
+                            <button class="chip" data-q="写三条可以追问的方向">给我追问的方向</button>
                         </div>
-                        <input type="file" id="file-input" accept=".pdf,.txt,.docx">
                     </div>
-                    <div id="upload-status"></div>
                 </div>
-            </section>
 
-            <!-- Documents Section -->
-            <section class="content-section" id="section-documents">
-                <div class="section-header">
-                    <h2 class="section-title">Document Library</h2>
-                    <div class="section-counter" id="docs-counter"></div>
-                </div>
-                <div class="section-body">
-                    <div id="documents-container">
-                        <div class="empty-state">Loading documents...</div>
-                    </div>
-                </div>
-            </section>
-
-            <!-- Query Section -->
-            <section class="content-section" id="section-query">
-                <div class="section-header">
-                    <h2 class="section-title">Query Knowledge Base</h2>
-                    <div class="section-actions">
-                        <select id="top-k" class="select-input">
-                            <option value="3">Top 3</option>
-                            <option value="5" selected>Top 5</option>
-                            <option value="10">Top 10</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="section-body">
-                    <div class="query-wrapper">
-                        <textarea class="query-input" id="query-input" placeholder="Ask a question about your documents..." rows="3"></textarea>
-                        <button class="btn-primary" id="query-btn" onclick="queryDocuments()">
-                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                                <circle cx="7" cy="7" r="4.5" stroke="currentColor" stroke-width="1.5"/>
-                                <path d="M10.5 10.5L14 14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-                            </svg>
-                            Search
-                        </button>
-                    </div>
-                    <p class="query-hint">Press Ctrl+Enter to search</p>
-                </div>
-            </section>
-
-            <!-- Results Section -->
-            <section class="content-section" id="section-results" style="display: none;">
-                <div class="section-header">
-                    <h2 class="section-title">Search Results</h2>
-                    <div class="section-counter" id="results-counter"></div>
-                </div>
-                <div class="section-body">
-                    <div class="results-container" id="results-container"></div>
-                </div>
-            </section>
+                <form class="chat-input-wrap" id="chat-form">
+                    <label class="switch">
+                        <input type="checkbox" id="use-knowledge-chat" checked>
+                        <span class="switch-track"></span>
+                        <span class="switch-label">引用知识库</span>
+                    </label>
+                    <textarea id="chat-input" class="chat-input"
+                              placeholder="输入问题，Enter 发送，Shift+Enter 换行" rows="1"></textarea>
+                    <button type="submit" class="btn btn-primary btn-send" id="chat-send">
+                        发送
+                    </button>
+                </form>
+            </div>
         </div>
-    </main>
+    </section>
 
-    <!-- Footer -->
-    <!-- <footer class="footer">
-        <span>EasyRag</span>
-        <span class="footer-sep">·</span>
-        <span>Built with FastAPI & sqlite-vec</span>
-    </footer> -->
+    <!-- ===================== Tab 3: 文档生成 ===================== -->
+    <section class="tab" data-tab="generate">
+        <div class="container">
+            <div class="hero">
+                <h1 class="hero-title">一句话生成 Word。</h1>
+                <p class="hero-sub">告诉它你要写什么，它会先翻知识库找素材，再让大模型按 Markdown 排版，<br/>最后渲染成可以直接下载的 .docx 文档。</p>
+            </div>
+
+            <div class="gen-grid">
+                <form class="card gen-form" id="gen-form">
+                    <label class="field">
+                        <span class="field-label">文档标题</span>
+                        <input type="text" id="gen-title" class="input"
+                               placeholder="比如：2026 Q3 产品复盘报告" value="">
+                    </label>
+                    <label class="field">
+                        <span class="field-label">写作要求 / 主题</span>
+                        <textarea id="gen-prompt" class="input input-area"
+                                  placeholder="例如：基于知识库内容，写一份给非技术同事看的项目总结，包括背景、关键决策、风险点和下一步。语气专业但口语化，1500 字左右。"></textarea>
+                    </label>
+                    <div class="field-row">
+                        <label class="switch">
+                            <input type="checkbox" id="use-knowledge-gen" checked>
+                            <span class="switch-track"></span>
+                            <span class="switch-label">引用知识库</span>
+                        </label>
+                        <span class="field-hint" id="gen-status">尚未生成</span>
+                    </div>
+                    <div class="gen-actions">
+                        <button type="button" class="btn btn-secondary" id="gen-preview-btn">预览 Markdown</button>
+                        <button type="submit" class="btn btn-primary">生成并下载 Word</button>
+                    </div>
+                </form>
+
+                <div class="card gen-preview-card">
+                    <div class="gen-preview-head">
+                        <h3 class="gen-preview-title">预览</h3>
+                        <span class="gen-preview-meta" id="gen-preview-meta">空</span>
+                    </div>
+                    <div class="gen-preview" id="gen-preview">
+                        <div class="empty">点击 <b>预览 Markdown</b> 看到大模型输出的内容；<br/>点击 <b>生成并下载 Word</b> 直接拿 .docx。</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+</main>
+
+<!-- ===================== 设置 Modal ===================== -->
+<div class="modal-backdrop" id="settings-modal" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="settings-title">
+        <div class="modal-head">
+            <h2 id="settings-title">连接配置</h2>
+            <button class="modal-close" id="close-settings" aria-label="关闭">×</button>
+        </div>
+        <div class="modal-body">
+            <p class="modal-tip">所有配置只保存在你浏览器的 localStorage 里，不会上传到服务器。</p>
+
+            <label class="field">
+                <span class="field-label">API Endpoint</span>
+                <input type="text" id="cfg-endpoint" class="input"
+                       placeholder="https://api.openai.com/v1/chat/completions">
+                <span class="field-hint">OpenAI 兼容接口。可填到 /v1 或完整 /chat/completions 路径。</span>
+            </label>
+
+            <label class="field">
+                <span class="field-label">API Key</span>
+                <input type="password" id="cfg-api-key" class="input" placeholder="sk-...">
+            </label>
+
+            <label class="field">
+                <span class="field-label">Model</span>
+                <input type="text" id="cfg-model" class="input" placeholder="gpt-4o-mini / deepseek-chat / qwen-plus …">
+            </label>
+
+            <div class="field-row">
+                <label class="field field-sm">
+                    <span class="field-label">Temperature</span>
+                    <input type="number" id="cfg-temperature" class="input" value="0.4" step="0.1" min="0" max="2">
+                </label>
+                <label class="field field-sm">
+                    <span class="field-label">Max tokens</span>
+                    <input type="number" id="cfg-max-tokens" class="input" value="4096" step="256" min="256">
+                </label>
+            </div>
+
+            <label class="field">
+                <span class="field-label">引用片段数 (Top K)</span>
+                <input type="number" id="cfg-top-k" class="input" value="5" min="1" max="20">
+                <span class="field-hint">问答和生成时会从知识库取最相关的 K 段拼给大模型。</span>
+            </label>
+        </div>
+        <div class="modal-foot">
+            <button class="btn btn-ghost" id="reset-settings">清空</button>
+            <button class="btn btn-primary" id="save-settings">保存</button>
+        </div>
+    </div>
+</div>
+
+<!-- Toast 容器 -->
+<div class="toast-stack" id="toast-stack" aria-live="polite"></div>
+
+<footer class="footer">
+    <span>知图 · Atlas · 本地知识库 + 在线大模型问答与文档生成</span>
+</footer>
+
+<script src="/static/js/main.js" defer></script>
 </body>
 </html>

@@ -1,1 +1,8 @@
 /__pycache__
+/node_modules
+
+# Local data & uploads (private knowledge base)
+/data/
+/uploads/
+/generated/
+*.db
