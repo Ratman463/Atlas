@@ -26,7 +26,7 @@ from pydantic import BaseModel
 import config
 from database import get_db
 from embedding import get_embedding_engine, DocumentProcessor
-from llm import LLMConfig, LLMError, chat, chat_stream
+from llm import LLMConfig, LLMError, chat, chat_stream, list_models, test_connection, derive_base_url
 from docgen import markdown_to_docx
 
 
@@ -45,6 +45,7 @@ class ChatRequest(BaseModel):
     use_knowledge: bool = True
     temperature: Optional[float] = 0.4
     max_tokens: Optional[int] = None
+    system_prompt: Optional[str] = None
     api_key: Optional[str] = None
     endpoint: Optional[str] = None
     model: Optional[str] = None
@@ -57,9 +58,21 @@ class GenerateDocRequest(BaseModel):
     use_knowledge: bool = True
     temperature: Optional[float] = 0.5
     max_tokens: Optional[int] = 4096
+    system_prompt: Optional[str] = None
     api_key: Optional[str] = None
     endpoint: Optional[str] = None
     model: Optional[str] = None
+
+
+class ModelsRequest(BaseModel):
+    endpoint: str
+    api_key: str
+
+
+class TestConnectionRequest(BaseModel):
+    endpoint: str
+    api_key: str
+    model: str
 
 
 class SearchResult(BaseModel):
@@ -116,6 +129,46 @@ async def root():
 @app.get("/api/health")
 async def health_check():
     return {"status": "healthy", "service": "知图", "version": "2.0.0"}
+
+
+@app.post("/api/models")
+async def list_models_endpoint(request: ModelsRequest):
+    """Fetch available model ids from the user's OpenAI-compatible endpoint.
+
+    Follows the OpenAI convention: GET {base_url}/models, where base_url is
+    derived from the user's chat endpoint (e.g. https://host/v1).
+    """
+    if not request.endpoint.strip() or not request.api_key.strip():
+        raise HTTPException(400, "请先填好 Endpoint 和 API Key")
+    try:
+        base_url = derive_base_url(request.endpoint)
+        models = await list_models(request.endpoint, request.api_key)
+    except LLMError as e:
+        raise HTTPException(400, str(e))
+    if not models:
+        raise HTTPException(404, "未获取到任何模型，请检查 Endpoint 是否支持 /models 接口")
+    return {
+        "models": models,
+        "count": len(models),
+        "base_url": base_url,
+        "request_url": f"{base_url}/models",
+    }
+
+
+@app.post("/api/test")
+async def test_connection_endpoint(request: TestConnectionRequest):
+    """Ping the endpoint with a 1-token completion to verify credentials."""
+    if not request.endpoint.strip() or not request.api_key.strip():
+        raise HTTPException(400, "请先填好 Endpoint 和 API Key")
+    if not request.model.strip():
+        raise HTTPException(400, "请先选择或输入 Model")
+    base_url = derive_base_url(request.endpoint)
+    try:
+        reply = await test_connection(request.endpoint, request.api_key, request.model)
+    except LLMError as e:
+        raise HTTPException(400, str(e))
+    text = reply.strip() if reply else "(模型返回空)"
+    return {"ok": True, "message": f"连接成功，模型已响应：{text[:60]}", "base_url": base_url}
 
 
 # ----------------------------------------------------------------------------
@@ -265,14 +318,17 @@ async def chat_endpoint(request: ChatRequest):
     if request.use_knowledge:
         context_text = _retrieve_context(question, request.top_k or config.TOP_K_RESULTS)
 
+    default_system = (
+        "你是「知图」的知识助手。请根据下方参考资料作答，"
+        "并在合适的时候注明出处文件名。"
+        "如果资料里没有答案，请如实说明，不要编造。"
+        "回答保持简洁、自然、中文优先。"
+    )
+    system_prompt = (request.system_prompt or "").strip() or default_system
+
     messages: List[dict] = [{
         "role": "system",
-        "content": (
-            "你是「知图」的知识助手。请根据下方参考资料作答，"
-            "并在合适的时候注明出处文件名。"
-            "如果资料里没有答案，请如实说明，不要编造。"
-            "回答保持简洁、自然、中文优先。"
-        ),
+        "content": system_prompt,
     }]
     if context_text:
         messages.append({
@@ -325,13 +381,16 @@ async def generate_doc_preview(request: GenerateDocRequest):
 
     context_text = _retrieve_context(prompt, request.top_k or config.TOP_K_RESULTS) if request.use_knowledge else ""
 
+    default_prompt = (
+        "你是「知图」的文档撰写助手。请输出 Markdown 格式（不要代码块包裹）。"
+        "用 `#` 作主标题，`##` 作章节，`###` 作小节；段落直接写；"
+        "可用 `**粗体**`、`*斜体*`、列表、表格。中文，简洁专业，至少 800 字。"
+    )
+    system_prompt = (request.system_prompt or "").strip() or default_prompt
+
     messages: List[dict] = [{
         "role": "system",
-        "content": (
-            "你是「知图」的文档撰写助手。请输出 Markdown 格式（不要代码块包裹）。"
-            "用 `#` 作主标题，`##` 作章节，`###` 作小节；段落直接写；"
-            "可用 `**粗体**`、`*斜体*`、列表、表格。中文，简洁专业，至少 800 字。"
-        ),
+        "content": system_prompt,
     }]
     if context_text:
         messages.append({"role": "system", "content": f"参考资料：\n\n{context_text}"})
@@ -364,23 +423,26 @@ async def generate_doc(request: GenerateDocRequest):
     if request.use_knowledge:
         context_text = _retrieve_context(prompt, request.top_k or config.TOP_K_RESULTS)
 
+    default_prompt = (
+        "你是「知图」的文档撰写助手。用户会给你一个主题和可选的参考资料，"
+        "请输出一份结构清晰、可直接转成 Word 的 Markdown 文档。\n"
+        "格式约定：\n"
+        "- 用 `#` 作为文档主标题（仅一个）；\n"
+        "- 用 `##` 作为章节标题，可拆出多个；\n"
+        "- 用 `###` 作为小节；\n"
+        "- 正文段落直接写；\n"
+        "- 重点可用 `**粗体**`、`*斜体*`、`行内代码`；\n"
+        "- 列表可用 `-` 或 `1.`；\n"
+        "- 如有对比数据可用 GFM 风格表格 `| a | b |`；\n"
+        "- 不要输出代码块包裹（```），不要输出 HTML；\n"
+        "- 全文用中文，简洁专业；\n"
+        "- 内容至少 800 字，宁可详细不要偷懒。"
+    )
+    system_prompt = (request.system_prompt or "").strip() or default_prompt
+
     messages: list[dict] = [{
         "role": "system",
-        "content": (
-            "你是「知图」的文档撰写助手。用户会给你一个主题和可选的参考资料，"
-            "请输出一份结构清晰、可直接转成 Word 的 Markdown 文档。\n"
-            "格式约定：\n"
-            "- 用 `#` 作为文档主标题（仅一个）；\n"
-            "- 用 `##` 作为章节标题，可拆出多个；\n"
-            "- 用 `###` 作为小节；\n"
-            "- 正文段落直接写；\n"
-            "- 重点可用 `**粗体**`、`*斜体*`、`行内代码`；\n"
-            "- 列表可用 `-` 或 `1.`；\n"
-            "- 如有对比数据可用 GFM 风格表格 `| a | b |`；\n"
-            "- 不要输出代码块包裹（```），不要输出 HTML；\n"
-            "- 全文用中文，简洁专业；\n"
-            "- 内容至少 800 字，宁可详细不要偷懒。"
-        ),
+        "content": system_prompt,
     }]
     if context_text:
         messages.append({"role": "system", "content": f"参考资料：\n\n{context_text}"})

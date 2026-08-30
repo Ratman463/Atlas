@@ -156,3 +156,78 @@ async def chat_stream(cfg: LLMConfig, messages: List[Dict[str, str]],
                         yield delta
         except httpx.HTTPError as e:
             raise LLMError(f"网络错误：{e}") from e
+
+
+def derive_base_url(endpoint: str) -> str:
+    """Derive the API base URL (used for GET /models) from a chat endpoint.
+
+    Follows the OpenAI-compatible convention: model list lives at
+    `GET {base_url}/models` where base_url is what you pass to the SDK, e.g.
+    `https://api.deepseek.com/v1` or `https://api.openai.com/v1`.
+
+    Input examples:
+      https://host/v1/chat/completions  -> https://host/v1
+      https://host/v1                   -> https://host/v1
+      https://host/chat/completions     -> https://host
+      https://host/                     -> https://host/v1 (assume /v1)
+    """
+    url = endpoint.strip().rstrip("/")
+    if url.endswith("/chat/completions"):
+        url = url[: -len("/chat/completions")]
+    # Bare host: most OpenAI-compatible gateways expose /v1/models
+    if url.count("/") == 2 and "/v1" not in url:
+        url = url + "/v1"
+    return url
+
+
+async def list_models(endpoint: str, api_key: str) -> List[str]:
+    """Fetch available model ids from an OpenAI-compatible /models endpoint."""
+    api_key = (api_key or "").strip() or config.DEFAULT_LLM_API_KEY
+    endpoint = (endpoint or "").strip() or config.DEFAULT_LLM_ENDPOINT
+    if not api_key or not endpoint:
+        raise LLMError("请先填好 Endpoint 和 API Key 再获取模型列表。")
+
+    base = derive_base_url(endpoint)
+    url = base + "/models"
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json",
+    }
+    try:
+        async with httpx.AsyncClient(timeout=config.LLM_TIMEOUT) as client:
+            resp = await client.get(url, headers=headers)
+    except httpx.HTTPError as e:
+        raise LLMError(f"网络错误：{e}") from e
+
+    if resp.status_code >= 400:
+        raise LLMError(f"获取模型列表失败 ({resp.status_code}): {resp.text[:300]}")
+
+    try:
+        data = resp.json()
+        items = data.get("data", data if isinstance(data, list) else [])
+        models = []
+        for it in items:
+            if isinstance(it, dict):
+                mid = it.get("id") or it.get("name")
+            else:
+                mid = str(it)
+            if mid:
+                models.append(str(mid))
+        return models
+    except Exception as e:
+        raise LLMError(f"无法解析模型列表响应：{e}") from e
+
+
+async def test_connection(endpoint: str, api_key: str, model: str) -> str:
+    """Ping an OpenAI-compatible endpoint with a 1-token completion.
+
+    Sends `max_tokens=1` per the OpenAI convention to verify the credentials
+    and connectivity without burning tokens. Returns the reply text (or an
+    empty string if the model only returned usage).
+    """
+    cfg = LLMConfig.from_request(api_key, endpoint, model, temperature=0, max_tokens=1)
+    messages = [{"role": "user", "content": "ping"}]
+    try:
+        return await chat(cfg, messages, max_tokens=1)
+    except LLMError as e:
+        raise LLMError(f"连接失败：{e}") from e

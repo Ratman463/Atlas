@@ -34,10 +34,11 @@ const SETTINGS_KEY = '知图.settings.v1';
 const defaultSettings = {
     endpoint: 'https://api.openai.com/v1/chat/completions',
     apiKey: '',
-    model: 'gpt-4o-mini',
+    model: '',
     temperature: 0.4,
     maxTokens: 4096,
     topK: 5,
+    systemPrompt: '',
 };
 
 function loadSettings() {
@@ -59,14 +60,83 @@ function isConfigured() {
     return !!(s.endpoint && s.apiKey && s.model);
 }
 
+function fillModelList(models) {
+    // Fill the <datalist> so the user can pick, but the input stays editable.
+    const datalist = $('#cfg-model-options');
+    datalist.innerHTML = (models || []).map(m =>
+        `<option value="${escapeHtml(m)}">`
+    ).join('');
+}
+
 function fillSettingsForm() {
     const s = loadSettings();
     $('#cfg-endpoint').value    = s.endpoint;
     $('#cfg-api-key').value     = s.apiKey;
-    $('#cfg-model').value       = s.model;
+    $('#cfg-model').value       = s.model || '';
     $('#cfg-temperature').value = s.temperature;
     $('#cfg-max-tokens').value  = s.maxTokens;
     $('#cfg-top-k').value       = s.topK;
+    $('#cfg-system-prompt').value = s.systemPrompt || '';
+    // Don't clobber datalist on every open; only refill if empty.
+    if (!$('#cfg-model-options').children.length) fillModelList([]);
+}
+
+// Fetch the model list from the user's endpoint (GET {base}/models)
+async function fetchModels() {
+    const endpoint = $('#cfg-endpoint').value.trim();
+    const apiKey   = $('#cfg-api-key').value.trim();
+    if (!endpoint || !apiKey) {
+        toast('请先填好 Endpoint 和 API Key', 'error');
+        return;
+    }
+    const btn = $('#fetch-models');
+    const original = btn.textContent;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> 拉取中…';
+    try {
+        const r = await fetch(`${API}/models`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ endpoint, api_key: apiKey }),
+        });
+        const j = await r.json();
+        if (!r.ok) throw new Error(j.detail || `HTTP ${r.status}`);
+        fillModelList(j.models);
+        toast(`已获取 ${j.count} 个模型`, 'success');
+    } catch (e) {
+        toast(`获取失败：${e.message}`, 'error');
+    } finally {
+        btn.disabled = false;
+        btn.textContent = original;
+    }
+}
+
+// Ping the endpoint with a 1-token completion to verify the credentials.
+async function testConnection() {
+    const endpoint = $('#cfg-endpoint').value.trim();
+    const apiKey   = $('#cfg-api-key').value.trim();
+    const model    = $('#cfg-model').value.trim();
+    if (!endpoint || !apiKey) { toast('请先填好 Endpoint 和 API Key', 'error'); return; }
+    if (!model) { toast('请先填或选一个 Model', 'error'); return; }
+    const btn = $('#test-connection');
+    const original = btn.textContent;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> 测试中…';
+    try {
+        const r = await fetch(`${API}/test`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ endpoint, api_key: apiKey, model }),
+        });
+        const j = await r.json();
+        if (!r.ok) throw new Error(j.detail || `HTTP ${r.status}`);
+        toast(`连接成功：${j.message || 'OK'}`, 'success');
+    } catch (e) {
+        toast(`连接失败：${e.message}`, 'error');
+    } finally {
+        btn.disabled = false;
+        btn.textContent = original;
+    }
 }
 
 function bindSettingsModal() {
@@ -75,9 +145,9 @@ function bindSettingsModal() {
         $('#settings-modal').hidden = false;
     });
     $('#close-settings').addEventListener('click', () => $('#settings-modal').hidden = true);
-    $('#settings-modal').addEventListener('click', e => {
-        if (e.target === e.currentTarget) e.currentTarget.hidden = true;
-    });
+
+    $('#fetch-models').addEventListener('click', fetchModels);
+    $('#test-connection').addEventListener('click', testConnection);
 
     $('#save-settings').addEventListener('click', () => {
         const s = {
@@ -87,6 +157,7 @@ function bindSettingsModal() {
             temperature: parseFloat($('#cfg-temperature').value) || 0.4,
             maxTokens:   parseInt($('#cfg-max-tokens').value, 10) || 4096,
             topK:        parseInt($('#cfg-top-k').value, 10) || 5,
+            systemPrompt: ($('#cfg-system-prompt').value || '').trim(),
         };
         if (!s.endpoint || !s.apiKey || !s.model) {
             toast('请把 Endpoint / API Key / Model 都填好', 'error');
@@ -178,7 +249,7 @@ async function loadDocs() {
         const r = await fetch(`${API}/documents`);
         const docs = await r.json();
         if (!docs.length) {
-            list.innerHTML = '<div class="empty">还没有文档。先上传一份试试。</div>';
+            list.innerHTML = '<div class="empty">还没有文档，先上传一份试试</div>';
             meta.textContent = '0 篇';
             return;
         }
@@ -321,6 +392,31 @@ function bindChat() {
         form.requestSubmit();
     }));
 
+    // Clear conversation
+    const clearBtn = $('#clear-chat');
+    if (clearBtn) {
+        clearBtn.addEventListener('click', () => {
+            if (!confirm('清空当前对话？')) return;
+            chatHistory.length = 0;
+            const thread = $('#chat-thread');
+            thread.innerHTML = '';
+            thread.innerHTML = `
+                <div class="chat-empty" id="chat-empty">
+                    <div class="chat-empty-icon">✦</div>
+                    <p>提问吧，我会先去翻你的知识库</p>
+                    <div class="chat-suggest">
+                        <button class="chip" data-q="总结一下知识库里都讲了什么">总结一下知识库</button>
+                        <button class="chip" data-q="列出所有提到的核心概念">列出核心概念</button>
+                        <button class="chip" data-q="写三条可以追问的方向">给我追问的方向</button>
+                    </div>
+                </div>`;
+            $$('.chip').forEach(c => c.addEventListener('click', () => {
+                input.value = c.dataset.q;
+                form.requestSubmit();
+            }));
+        });
+    }
+
     form.addEventListener('submit', async e => {
         e.preventDefault();
         const q = input.value.trim();
@@ -364,6 +460,7 @@ function bindChat() {
                     use_knowledge: useKb,
                     temperature: s.temperature,
                     max_tokens: s.maxTokens,
+                    system_prompt: s.systemPrompt || null,
                     api_key: s.apiKey,
                     endpoint: s.endpoint,
                     model: s.model,
@@ -490,6 +587,7 @@ function bindGenerate() {
             use_knowledge: $('#use-knowledge-gen').checked,
             temperature: s.temperature,
             max_tokens: s.maxTokens,
+            system_prompt: s.systemPrompt || null,
             api_key: s.apiKey,
             endpoint: s.endpoint,
             model: s.model,
@@ -579,6 +677,20 @@ document.addEventListener('DOMContentLoaded', () => {
     bindChat();
     bindGenerate();
     loadDocs();
+
+    // Deep-link: ?view=ask|generate|knowledge and/or ?settings=1
+    try {
+        const params = new URLSearchParams(location.search);
+        const view = params.get('view');
+        if (view && ['knowledge', 'ask', 'generate'].includes(view)) {
+            const tab = document.querySelector(`.nav-tab[data-tab="${view}"]`);
+            if (tab) tab.click();
+        }
+        if (params.get('settings') === '1' || params.get('settings') === 'true') {
+            $('#open-settings').click();
+        }
+    } catch (e) { /* ignore */ }
+
     if (!isConfigured()) {
         setTimeout(() => {
             toast('提示：右上角齿轮里填一下 API Key', '');

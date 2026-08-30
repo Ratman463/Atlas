@@ -19,8 +19,8 @@ API Key、Endpoint、Model 只存你浏览器的 `localStorage`，不会上传�
 ## Quick Start
 
 ```bash
-git clone https://github.com/Ratman463/EasyRag.git
-cd EasyRag
+git clone https://github.com/Ratman463/Atlas.git
+cd Atlas
 pip install -r requirements.txt
 python main.py
 ```
