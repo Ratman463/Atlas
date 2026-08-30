@@ -1,0 +1,13 @@
+{
+    "name": "atlas",
+    "version": "2.0.0",
+    "private": true,
+    "description": "知图 (Atlas) - 本地知识库 / AI 问答 / 文档生成",
+    "scripts": {
+        "format": "prettier --write .",
+        "format:check": "prettier --check ."
+    },
+    "devDependencies": {
+        "prettier": "^3.3.3"
+    }
+}

@@ -17,8 +17,8 @@ TOP_K_RESULTS = 5  # default context chunks sent to the LLM
 
 # ----- Upload -----
 UPLOAD_DIR = os.path.join(BASE_DIR, "uploads")
-MAX_UPLOAD_SIZE = 50 * 1024 * 1024  # 50 MB
-ALLOWED_EXTENSIONS = {".pdf", ".txt", ".docx", ".md", ".markdown"}
+MAX_UPLOAD_SIZE = 200 * 1024 * 1024  # 200 MB（支持大体积图册 PDF / Excel）
+ALLOWED_EXTENSIONS = {".pdf", ".txt", ".docx", ".md", ".markdown", ".xlsx", ".xls"}
 
 # ----- LLM proxy (optional; client-side defaults win) -----
 # Frontend sends api_key / endpoint / model with every request, but we keep a

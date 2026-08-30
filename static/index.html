@@ -1,247 +1,388 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="zh-CN">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>知图 · 本地知识库 · AI 问答 · 文档生成</title>
-    <meta name="description" content="知图（Atlas）：一个轻量本地知识库 + 在线 AI 问答 + Word 文档生成工具，自带 OpenAI 兼容 API Key。搜索知识库、问文档、一键出报告，全部本地跑。">
-    <link rel="stylesheet" href="/static/css/main.css"/>
-</head>
-<body>
-
-<!-- ===================== 顶部导航 ===================== -->
-<header class="nav">
-    <div class="nav-inner">
-        <a href="#" class="nav-logo" data-tab="knowledge">
-            <svg class="logo-mark" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
-                <path fill="currentColor" d="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z"/>
-            </svg>
-            <span>知图</span>
-        </a>
-        <nav class="nav-tabs">
-            <button class="nav-tab is-active" data-tab="knowledge">知识库</button>
-            <button class="nav-tab" data-tab="ask">智能问答</button>
-            <button class="nav-tab" data-tab="generate">文档生成</button>
-        </nav>
-        <button class="nav-settings" id="open-settings" title="配置 API Key">
-            <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
-                <path fill="none" stroke="currentColor" stroke-width="1.5"
-                      d="M12 15.5a3.5 3.5 0 100-7 3.5 3.5 0 000 7z"/>
-                <path fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
-                      d="M19.4 15a1.7 1.7 0 00.3 1.9l.1.1a2 2 0 11-2.9 2.9l-.1-.1a1.7 1.7 0 00-1.9-.3 1.7 1.7 0 00-1 1.5V21a2 2 0 01-4 0v-.1a1.7 1.7 0 00-1.1-1.5 1.7 1.7 0 00-1.9.3l-.1.1a2 2 0 11-2.9-2.9l.1-.1a1.7 1.7 0 00.3-1.9 1.7 1.7 0 00-1.5-1H3a2 2 0 010-4h.1A1.7 1.7 0 004.6 9a1.7 1.7 0 00-.3-1.9l-.1-.1a2 2 0 112.9-2.9l.1.1a1.7 1.7 0 001.9.3H9a1.7 1.7 0 001-1.5V3a2 2 0 014 0v.1a1.7 1.7 0 001 1.5 1.7 1.7 0 001.9-.3l.1-.1a2 2 0 112.9 2.9l-.1.1a1.7 1.7 0 00-.3 1.9V9a1.7 1.7 0 001.5 1H21a2 2 0 010 4h-.1a1.7 1.7 0 00-1.5 1z"/>
-            </svg>
-        </button>
-    </div>
-</header>
-
-<main id="app">
-
-    <!-- ===================== Tab 1: 知识库 ===================== -->
-    <section class="tab is-active" data-tab="knowledge">
-        <div class="container">
-            <div class="hero">
-                <h1 class="hero-title">知识库</h1>
-                <p class="hero-sub">把你手头的文档丢进来，PDF、Word、TXT、Markdown 都行<br/>系统会自动切块、向量化，留着给你提问和生成文档用</p>
-            </div>
-
-            <div class="card upload-card">
-                <label class="dropzone" id="dropzone">
-                    <input type="file" id="file-input" multiple
-                           accept=".pdf,.txt,.docx,.md,.markdown" hidden>
-                    <svg viewBox="0 0 48 48" width="44" height="44" aria-hidden="true">
-                        <path fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"
-                              stroke-linejoin="round" d="M24 6v28M12 18 24 6l12 12M8 38v4a2 2 0 0 0 2 2h28a2 2 0 0 0 2-2v-4"/>
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>知图 · 本地知识库 · AI 问答 · 文档生成</title>
+        <meta
+            name="description"
+            content="知图（Atlas）：一个轻量本地知识库 + 在线 AI 问答 + Word 文档生成工具，自带 OpenAI 兼容 API Key。搜索知识库、问文档、一键出报告，全部本地跑。"
+        />
+        <link rel="stylesheet" href="/static/css/main.css" />
+    </head>
+    <body>
+        <!-- ===================== 顶部导航 ===================== -->
+        <header class="nav">
+            <div class="nav-inner">
+                <a href="#" class="nav-logo" data-tab="knowledge">
+                    <svg
+                        class="logo-mark"
+                        viewBox="0 0 24 24"
+                        width="22"
+                        height="22"
+                        aria-hidden="true"
+                    >
+                        <path
+                            fill="currentColor"
+                            d="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z"
+                        />
                     </svg>
-                    <span class="dropzone-title">拖拽文件到这里，或点击选择</span>
-                    <span class="dropzone-hint">支持 PDF · DOCX · TXT · MD · 单次最多 50&nbsp;MB</span>
-                </label>
-                <div id="upload-status" class="upload-status" hidden></div>
+                    <span>知图</span>
+                </a>
+                <nav class="nav-tabs">
+                    <button class="nav-tab is-active" data-tab="knowledge">知识库</button>
+                    <button class="nav-tab" data-tab="ask">智能问答</button>
+                    <button class="nav-tab" data-tab="generate">文档生成</button>
+                </nav>
+                <button class="nav-settings" id="open-settings" title="配置 API Key">
+                    <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+                        <path
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="1.5"
+                            d="M12 15.5a3.5 3.5 0 100-7 3.5 3.5 0 000 7z"
+                        />
+                        <path
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="1.5"
+                            stroke-linecap="round"
+                            d="M19.4 15a1.7 1.7 0 00.3 1.9l.1.1a2 2 0 11-2.9 2.9l-.1-.1a1.7 1.7 0 00-1.9-.3 1.7 1.7 0 00-1 1.5V21a2 2 0 01-4 0v-.1a1.7 1.7 0 00-1.1-1.5 1.7 1.7 0 00-1.9.3l-.1.1a2 2 0 11-2.9-2.9l.1-.1a1.7 1.7 0 00.3-1.9 1.7 1.7 0 00-1.5-1H3a2 2 0 010-4h.1A1.7 1.7 0 004.6 9a1.7 1.7 0 00-.3-1.9l-.1-.1a2 2 0 112.9-2.9l.1.1a1.7 1.7 0 001.9.3H9a1.7 1.7 0 001-1.5V3a2 2 0 014 0v.1a1.7 1.7 0 001 1.5 1.7 1.7 0 001.9-.3l.1-.1a2 2 0 112.9 2.9l-.1.1a1.7 1.7 0 00-.3 1.9V9a1.7 1.7 0 001.5 1H21a2 2 0 010 4h-.1a1.7 1.7 0 00-1.5 1z"
+                        />
+                    </svg>
+                </button>
             </div>
+        </header>
 
-            <div class="card list-card">
-                <div class="list-head">
-                    <h2 class="list-title">文档列表</h2>
-                    <span class="list-meta" id="docs-meta">加载中…</span>
-                </div>
-                <div class="list-body" id="docs-list">
-                    <div class="empty">还没有文档，先上传一份试试</div>
-                </div>
-            </div>
-        </div>
-    </section>
+        <main id="app">
+            <!-- ===================== Tab 1: 知识库 ===================== -->
+            <section class="tab is-active" data-tab="knowledge">
+                <div class="container">
+                    <div class="hero">
+                        <h1 class="hero-title">知识库</h1>
+                        <p class="hero-sub">
+                            把你手头的文档丢进来，PDF、Word、TXT、Markdown 都行<br />系统会自动切块、向量化，留着给你提问和生成文档用
+                        </p>
+                    </div>
 
-    <!-- ===================== Tab 2: 智能问答 ===================== -->
-    <section class="tab" data-tab="ask">
-        <div class="container container-narrow">
-            <div class="hero hero-sm">
-                <h1 class="hero-title">问知识库一句话</h1>
-                <p class="hero-sub">基于你的文档检索 + 大模型综合回答，逐字流式输出<br/>每条回复都会标注来源片段，方便核对</p>
-            </div>
+                    <div class="card upload-card">
+                        <label class="dropzone" id="dropzone">
+                            <input
+                                type="file"
+                                id="file-input"
+                                multiple
+                                accept=".pdf,.txt,.docx,.md,.markdown,.xlsx,.xls"
+                                hidden
+                            />
+                            <svg viewBox="0 0 48 48" width="44" height="44" aria-hidden="true">
+                                <path
+                                    fill="none"
+                                    stroke="currentColor"
+                                    stroke-width="1.6"
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    d="M24 6v28M12 18 24 6l12 12M8 38v4a2 2 0 0 0 2 2h28a2 2 0 0 0 2-2v-4"
+                                />
+                            </svg>
+                            <span class="dropzone-title">拖拽文件到这里，或点击选择</span>
+                            <span class="dropzone-hint"
+                                >支持 PDF · DOCX · TXT · MD · XLSX · 单次最多 200&nbsp;MB</span
+                            >
+                        </label>
+                        <div id="upload-status" class="upload-status" hidden></div>
+                    </div>
 
-            <div class="chat-window card">
-                <div class="chat-thread" id="chat-thread">
-                    <div class="chat-empty" id="chat-empty">
-                        <div class="chat-empty-icon">✦</div>
-                        <p>提问吧，我会先去翻你的知识库</p>
-                        <div class="chat-suggest">
-                            <button class="chip" data-q="总结一下知识库里都讲了什么">总结一下知识库</button>
-                            <button class="chip" data-q="列出所有提到的核心概念">列出核心概念</button>
-                            <button class="chip" data-q="写三条可以追问的方向">给我追问的方向</button>
+                    <div class="card list-card">
+                        <div class="list-head">
+                            <h2 class="list-title">文档列表</h2>
+                            <span class="list-meta" id="docs-meta">加载中…</span>
+                        </div>
+                        <div class="list-body" id="docs-list">
+                            <div class="empty">还没有文档，先上传一份试试</div>
                         </div>
                     </div>
                 </div>
+            </section>
 
-                <form class="chat-input-wrap" id="chat-form">
-                    <div class="chat-input-tools">
-                        <label class="switch">
-                            <input type="checkbox" id="use-knowledge-chat" checked>
-                            <span class="switch-track"></span>
-                            <span class="switch-label">引用知识库</span>
-                        </label>
-                        <button type="button" class="btn btn-ghost btn-clear-chat" id="clear-chat">清空对话</button>
+            <!-- ===================== Tab 2: 智能问答 ===================== -->
+            <section class="tab" data-tab="ask">
+                <div class="container container-narrow">
+                    <div class="hero hero-sm">
+                        <h1 class="hero-title">问知识库一句话</h1>
+                        <p class="hero-sub">
+                            基于你的文档检索 + 大模型综合回答，逐字流式输出<br />每条回复都会标注来源片段，方便核对
+                        </p>
                     </div>
-                    <div class="chat-input-row">
-                        <textarea id="chat-input" class="chat-input"
-                                  placeholder="输入问题，Enter 发送，Shift+Enter 换行" rows="1"></textarea>
-                        <button type="submit" class="btn btn-primary btn-send" id="chat-send">
-                            发送
-                        </button>
+
+                    <div class="chat-window card">
+                        <div class="chat-thread" id="chat-thread">
+                            <div class="chat-empty" id="chat-empty">
+                                <div class="chat-empty-icon">✦</div>
+                                <p>提问吧，我会先去翻你的知识库</p>
+                                <div class="chat-suggest">
+                                    <button class="chip" data-q="总结一下知识库里都讲了什么">
+                                        总结一下知识库
+                                    </button>
+                                    <button class="chip" data-q="列出所有提到的核心概念">
+                                        列出核心概念
+                                    </button>
+                                    <button class="chip" data-q="写三条可以追问的方向">
+                                        给我追问的方向
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <form class="chat-input-wrap" id="chat-form">
+                            <div class="chat-input-tools">
+                                <label class="switch">
+                                    <input type="checkbox" id="use-knowledge-chat" checked />
+                                    <span class="switch-track"></span>
+                                    <span class="switch-label">引用知识库</span>
+                                </label>
+                                <button
+                                    type="button"
+                                    class="btn btn-ghost btn-clear-chat"
+                                    id="clear-chat"
+                                >
+                                    清空对话
+                                </button>
+                            </div>
+                            <div class="chat-input-row">
+                                <textarea
+                                    id="chat-input"
+                                    class="chat-input"
+                                    placeholder="输入问题，Enter 发送，Shift+Enter 换行"
+                                    rows="1"
+                                ></textarea>
+                                <button
+                                    type="submit"
+                                    class="btn btn-primary btn-send"
+                                    id="chat-send"
+                                >
+                                    发送
+                                </button>
+                            </div>
+                        </form>
                     </div>
-                </form>
-            </div>
-        </div>
-    </section>
+                </div>
+            </section>
 
-    <!-- ===================== Tab 3: 文档生成 ===================== -->
-    <section class="tab" data-tab="generate">
-        <div class="container">
-            <div class="hero">
-                <h1 class="hero-title">一句话生成 Word</h1>
-                <p class="hero-sub">告诉它你要写什么，它会先翻知识库找素材，再让大模型按 Markdown 排版<br/>最后渲染成可以直接下载的 .docx 文档</p>
-            </div>
+            <!-- ===================== Tab 3: 文档生成 ===================== -->
+            <section class="tab" data-tab="generate">
+                <div class="container">
+                    <div class="hero">
+                        <h1 class="hero-title">一句话生成 Word</h1>
+                        <p class="hero-sub">
+                            告诉它你要写什么，它会先翻知识库找素材，再让大模型按 Markdown 排版<br />最后渲染成可以直接下载的
+                            .docx 文档
+                        </p>
+                    </div>
 
-            <div class="gen-grid">
-                <form class="card gen-form" id="gen-form">
+                    <div class="gen-grid">
+                        <form class="card gen-form" id="gen-form">
+                            <label class="field">
+                                <span class="field-label">文档标题</span>
+                                <input
+                                    type="text"
+                                    id="gen-title"
+                                    class="input"
+                                    placeholder="比如：2026 Q3 产品复盘报告"
+                                    value=""
+                                />
+                            </label>
+                            <label class="field">
+                                <span class="field-label">写作要求 / 主题</span>
+                                <textarea
+                                    id="gen-prompt"
+                                    class="input input-area"
+                                    placeholder="例如：基于知识库内容，写一份给非技术同事看的项目总结，包括背景、关键决策、风险点和下一步。语气专业但口语化，1500 字左右。"
+                                ></textarea>
+                            </label>
+                            <div class="field-row">
+                                <label class="switch">
+                                    <input type="checkbox" id="use-knowledge-gen" checked />
+                                    <span class="switch-track"></span>
+                                    <span class="switch-label">引用知识库</span>
+                                </label>
+                                <span class="field-hint" id="gen-status">尚未生成</span>
+                            </div>
+                            <div class="gen-actions">
+                                <button
+                                    type="button"
+                                    class="btn btn-secondary"
+                                    id="gen-preview-btn"
+                                >
+                                    预览 Markdown
+                                </button>
+                                <button type="submit" class="btn btn-primary">
+                                    生成并下载 Word
+                                </button>
+                            </div>
+                        </form>
+
+                        <div class="card gen-preview-card">
+                            <div class="gen-preview-head">
+                                <h3 class="gen-preview-title">预览</h3>
+                                <span class="gen-preview-meta" id="gen-preview-meta">空</span>
+                            </div>
+                            <div class="gen-preview" id="gen-preview">
+                                <div class="empty">
+                                    点击 <b>预览 Markdown</b> 看到大模型输出的内容；<br />点击
+                                    <b>生成并下载 Word</b> 直接拿 .docx。
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- ===================== 设置 Modal ===================== -->
+        <div class="modal-backdrop" id="settings-modal" hidden>
+            <div class="modal" role="dialog" aria-modal="true" aria-labelledby="settings-title">
+                <div class="modal-head">
+                    <h2 id="settings-title">连接配置</h2>
+                    <button class="modal-close" id="close-settings" aria-label="关闭">×</button>
+                </div>
+                <div class="modal-body">
+                    <p class="modal-tip">
+                        配置仅保存在浏览器 localStorage，不会上传到服务器。以下均遵循 OpenAI
+                        兼容接口规范。
+                    </p>
+
                     <label class="field">
-                        <span class="field-label">文档标题</span>
-                        <input type="text" id="gen-title" class="input"
-                               placeholder="比如：2026 Q3 产品复盘报告" value="">
+                        <span class="field-label">API Endpoint</span>
+                        <input
+                            type="text"
+                            id="cfg-endpoint"
+                            class="input"
+                            placeholder="https://api.deepseek.com/v1/chat/completions"
+                            spellcheck="false"
+                        />
+                        <span class="field-hint">
+                            如 <code>https://api.deepseek.com/v1/chat/completions</code>，或填
+                            <code>/v1</code> 末尾。
+                        </span>
                     </label>
+
                     <label class="field">
-                        <span class="field-label">写作要求 / 主题</span>
-                        <textarea id="gen-prompt" class="input input-area"
-                                  placeholder="例如：基于知识库内容，写一份给非技术同事看的项目总结，包括背景、关键决策、风险点和下一步。语气专业但口语化，1500 字左右。"></textarea>
+                        <span class="field-label">API Key</span>
+                        <input
+                            type="password"
+                            id="cfg-api-key"
+                            class="input"
+                            placeholder="sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+                            autocomplete="off"
+                            spellcheck="false"
+                        />
+                        <span class="field-hint"
+                            >各平台生成的一串密钥，形如 <code>sk-</code> 开头。</span
+                        >
                     </label>
+
+                    <label class="field">
+                        <span class="field-label">Model</span>
+                        <div class="model-picker">
+                            <input
+                                type="text"
+                                id="cfg-model"
+                                class="input"
+                                list="cfg-model-options"
+                                placeholder="填写或选择模型 ID，如 deepseek-chat"
+                                spellcheck="false"
+                                autocomplete="off"
+                            />
+                            <datalist id="cfg-model-options"></datalist>
+                            <button
+                                type="button"
+                                class="btn btn-secondary btn-fetch"
+                                id="fetch-models"
+                            >
+                                获取模型列表
+                            </button>
+                            <button
+                                type="button"
+                                class="btn btn-secondary btn-test"
+                                id="test-connection"
+                            >
+                                测试连接
+                            </button>
+                        </div>
+                        <span class="field-hint" id="cfg-model-hint"
+                            >可点击「获取模型列表」自动拉取，也可手动输入模型 ID。</span
+                        >
+                    </label>
+
+                    <label class="field">
+                        <span class="field-label">自定义提示词（可选）</span>
+                        <textarea
+                            id="cfg-system-prompt"
+                            class="input input-area"
+                            placeholder="留空则使用内置默认提示词。可覆盖问答与文档生成时的角色设定，例如：
+你是一名资深产品经理，所有回答控制在 200 字以内，先给结论再解释。"
+                        ></textarea>
+                        <span class="field-hint"
+                            >留空 = 默认。填了会作为 system message
+                            同时作用于智能问答与文档生成。</span
+                        >
+                    </label>
+
                     <div class="field-row">
-                        <label class="switch">
-                            <input type="checkbox" id="use-knowledge-gen" checked>
-                            <span class="switch-track"></span>
-                            <span class="switch-label">引用知识库</span>
+                        <label class="field field-sm">
+                            <span class="field-label">Temperature</span>
+                            <input
+                                type="number"
+                                id="cfg-temperature"
+                                class="input"
+                                value="0.4"
+                                step="0.1"
+                                min="0"
+                                max="2"
+                            />
+                            <span class="field-hint">采样温度（0–2），越低越稳定。</span>
                         </label>
-                        <span class="field-hint" id="gen-status">尚未生成</span>
+                        <label class="field field-sm">
+                            <span class="field-label">Max tokens</span>
+                            <input
+                                type="number"
+                                id="cfg-max-tokens"
+                                class="input"
+                                value="4096"
+                                step="256"
+                                min="256"
+                            />
+                            <span class="field-hint">单次最多生成的 token 数。</span>
+                        </label>
                     </div>
-                    <div class="gen-actions">
-                        <button type="button" class="btn btn-secondary" id="gen-preview-btn">预览 Markdown</button>
-                        <button type="submit" class="btn btn-primary">生成并下载 Word</button>
-                    </div>
-                </form>
 
-                <div class="card gen-preview-card">
-                    <div class="gen-preview-head">
-                        <h3 class="gen-preview-title">预览</h3>
-                        <span class="gen-preview-meta" id="gen-preview-meta">空</span>
-                    </div>
-                    <div class="gen-preview" id="gen-preview">
-                        <div class="empty">点击 <b>预览 Markdown</b> 看到大模型输出的内容；<br/>点击 <b>生成并下载 Word</b> 直接拿 .docx。</div>
-                    </div>
+                    <label class="field">
+                        <span class="field-label">引用片段数 (Top K)</span>
+                        <input
+                            type="number"
+                            id="cfg-top-k"
+                            class="input"
+                            value="5"
+                            min="1"
+                            max="20"
+                        />
+                        <span class="field-hint">RAG 检索时取最相关的 K 个片段拼入上下文。</span>
+                    </label>
+                </div>
+                <div class="modal-foot">
+                    <button class="btn btn-ghost" id="reset-settings">清空</button>
+                    <button class="btn btn-primary" id="save-settings">保存</button>
                 </div>
             </div>
         </div>
-    </section>
-</main>
 
-<!-- ===================== 设置 Modal ===================== -->
-<div class="modal-backdrop" id="settings-modal" hidden>
-    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="settings-title">
-        <div class="modal-head">
-            <h2 id="settings-title">连接配置</h2>
-            <button class="modal-close" id="close-settings" aria-label="关闭">×</button>
-        </div>
-        <div class="modal-body">
-            <p class="modal-tip">配置仅保存在浏览器 localStorage，不会上传到服务器。以下均遵循 OpenAI 兼容接口规范。</p>
+        <!-- Toast 容器 -->
+        <div class="toast-stack" id="toast-stack" aria-live="polite"></div>
 
-            <label class="field">
-                <span class="field-label">API Endpoint</span>
-                <input type="text" id="cfg-endpoint" class="input"
-                       placeholder="https://api.deepseek.com/v1/chat/completions"
-                       spellcheck="false">
-                <span class="field-hint">
-                    如 <code>https://api.deepseek.com/v1/chat/completions</code>，或填 <code>/v1</code> 末尾。
-                </span>
-            </label>
+        <footer class="footer">
+            <span>知图 · Atlas · 本地知识库 + 在线大模型问答与文档生成</span>
+        </footer>
 
-            <label class="field">
-                <span class="field-label">API Key</span>
-                <input type="password" id="cfg-api-key" class="input"
-                       placeholder="sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" autocomplete="off" spellcheck="false">
-                <span class="field-hint">各平台生成的一串密钥，形如 <code>sk-</code> 开头。</span>
-            </label>
-
-            <label class="field">
-                <span class="field-label">Model</span>
-                <div class="model-picker">
-                    <input type="text" id="cfg-model" class="input"
-                           list="cfg-model-options"
-                           placeholder="填写或选择模型 ID，如 deepseek-chat"
-                           spellcheck="false" autocomplete="off">
-                    <datalist id="cfg-model-options"></datalist>
-                    <button type="button" class="btn btn-secondary btn-fetch" id="fetch-models">获取模型列表</button>
-                    <button type="button" class="btn btn-secondary btn-test" id="test-connection">测试连接</button>
-                </div>
-                <span class="field-hint" id="cfg-model-hint">可点击「获取模型列表」自动拉取，也可手动输入模型 ID。</span>
-            </label>
-
-            <label class="field">
-                <span class="field-label">自定义提示词（可选）</span>
-                <textarea id="cfg-system-prompt" class="input input-area"
-                          placeholder="留空则使用内置默认提示词。可覆盖问答与文档生成时的角色设定，例如：
-你是一名资深产品经理，所有回答控制在 200 字以内，先给结论再解释。"></textarea>
-                <span class="field-hint">留空 = 默认。填了会作为 system message 同时作用于智能问答与文档生成。</span>
-            </label>
-
-            <div class="field-row">
-                <label class="field field-sm">
-                    <span class="field-label">Temperature</span>
-                    <input type="number" id="cfg-temperature" class="input" value="0.4" step="0.1" min="0" max="2">
-                    <span class="field-hint">采样温度（0–2），越低越稳定。</span>
-                </label>
-                <label class="field field-sm">
-                    <span class="field-label">Max tokens</span>
-                    <input type="number" id="cfg-max-tokens" class="input" value="4096" step="256" min="256">
-                    <span class="field-hint">单次最多生成的 token 数。</span>
-                </label>
-            </div>
-
-            <label class="field">
-                <span class="field-label">引用片段数 (Top K)</span>
-                <input type="number" id="cfg-top-k" class="input" value="5" min="1" max="20">
-                <span class="field-hint">RAG 检索时取最相关的 K 个片段拼入上下文。</span>
-            </label>
-        </div>
-        <div class="modal-foot">
-            <button class="btn btn-ghost" id="reset-settings">清空</button>
-            <button class="btn btn-primary" id="save-settings">保存</button>
-        </div>
-    </div>
-</div>
-
-<!-- Toast 容器 -->
-<div class="toast-stack" id="toast-stack" aria-live="polite"></div>
-
-<footer class="footer">
-    <span>知图 · Atlas · 本地知识库 + 在线大模型问答与文档生成</span>
-</footer>
-
-<script src="/static/js/main.js" defer></script>
-</body>
+        <script src="/static/js/main.js" defer></script>
+    </body>
 </html>

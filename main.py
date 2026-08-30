@@ -180,6 +180,40 @@ async def upload_document(file: UploadFile = File(...)):
     if ext not in config.ALLOWED_EXTENSIONS:
         raise HTTPException(400, f"Unsupported file type. Allowed: {sorted(config.ALLOWED_EXTENSIONS)}")
 
+    # Enforce size limit while streaming to disk (avoids loading huge files in RAM)
+    file_path = None
+    size = 0
+    try:
+        tmp_path = file_path = os.path.join(config.UPLOAD_DIR, ".uploading_tmp")
+        with open(tmp_path, "wb") as buffer:
+            while True:
+                chunk = file.file.read(1024 * 1024)  # 1 MB chunks
+                if not chunk:
+                    break
+                size += len(chunk)
+                if size > config.MAX_UPLOAD_SIZE:
+                    raise HTTPException(
+                        413,
+                        f"File too large ({size / 1024 / 1024:.0f} MB). "
+                        f"Limit is {config.MAX_UPLOAD_SIZE / 1024 / 1024:.0f} MB.",
+                    )
+                buffer.write(chunk)
+    except HTTPException:
+        # cleanup temp file and re-raise
+        if file_path and os.path.exists(file_path):
+            try:
+                os.remove(file_path)
+            except OSError:
+                pass
+        raise
+    except Exception as e:
+        if file_path and os.path.exists(file_path):
+            try:
+                os.remove(file_path)
+            except OSError:
+                pass
+        raise HTTPException(500, f"Failed to save file: {e}")
+
     # Avoid path traversal / clobbering: keep a unique safe filename
     safe_name = os.path.basename(file.filename)
     base, ext2 = os.path.splitext(safe_name)
@@ -189,12 +223,7 @@ async def upload_document(file: UploadFile = File(...)):
         save_name = f"{base}_{i}{ext2}"
         i += 1
     file_path = os.path.join(config.UPLOAD_DIR, save_name)
-
-    try:
-        with open(file_path, "wb") as buffer:
-            shutil.copyfileobj(file.file, buffer)
-    except Exception as e:
-        raise HTTPException(500, f"Failed to save file: {e}")
+    os.replace(os.path.join(config.UPLOAD_DIR, ".uploading_tmp"), file_path)
 
     try:
         text = DocumentProcessor.read_document(file_path)
@@ -221,9 +250,15 @@ async def upload_document(file: UploadFile = File(...)):
             chunks_added=len(chunks_with_embeddings),
         )
     except HTTPException:
+        # On validation errors (empty doc, no extractable content) also clean up
+        if file_path and os.path.exists(file_path):
+            try:
+                os.remove(file_path)
+            except OSError:
+                pass
         raise
     except Exception as e:
-        if os.path.exists(file_path):
+        if file_path and os.path.exists(file_path):
             try:
                 os.remove(file_path)
             except OSError:

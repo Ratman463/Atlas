@@ -151,8 +151,8 @@ class DocumentProcessor:
     
     @staticmethod
     def read_txt(file_path: str) -> str:
-        """Read plain text file."""
-        with open(file_path, 'r', encoding='utf-8') as f:
+        """Read plain text file (strip UTF-8 BOM)."""
+        with open(file_path, 'r', encoding='utf-8-sig') as f:
             return f.read()
 
     @classmethod
@@ -179,7 +179,59 @@ class DocumentProcessor:
         doc = Document(file_path)
         text_parts = [paragraph.text for paragraph in doc.paragraphs if paragraph.text]
         return '\n'.join(text_parts)
-    
+
+    @staticmethod
+    def read_excel(file_path: str) -> str:
+        """Read Excel (.xlsx / .xls) — extract all non-empty cells as text rows.
+
+        Each row becomes a line like: [Sheet1] A1: value | B2: value ...
+        """
+        ext = os.path.splitext(file_path)[1].lower()
+        lines: list[str] = []
+
+        def _cell_str(v) -> str:
+            if v is None:
+                return ""
+            if isinstance(v, float) and v.is_integer():
+                return str(int(v))
+            return str(v).strip()
+
+        if ext == '.xlsx':
+            from openpyxl import load_workbook
+            wb = load_workbook(file_path, read_only=True, data_only=True)
+            for ws in wb.worksheets:
+                rows = []
+                for row in ws.iter_rows():
+                    vals = [_cell_str(c.value) for c in row]
+                    # 整行全空则跳过
+                    if not any(vals):
+                        continue
+                    # 去尾部空列
+                    while vals and vals[-1] == "":
+                        vals.pop()
+                    rows.append(" | ".join(vals))
+                if rows:
+                    lines.append(f"[Sheet: {ws.title}]")
+                    lines.extend(rows)
+            wb.close()
+        else:  # .xls
+            import xlrd
+            book = xlrd.open_workbook(file_path)
+            for sheet in book.sheets():
+                rows = []
+                for r in range(sheet.nrows):
+                    vals = [_cell_str(sheet.cell_value(r, c)) for c in range(sheet.ncols)]
+                    if not any(vals):
+                        continue
+                    while vals and vals[-1] == "":
+                        vals.pop()
+                    rows.append(" | ".join(vals))
+                if rows:
+                    lines.append(f"[Sheet: {sheet.name}]")
+                    lines.extend(rows)
+
+        return "\n".join(lines)
+
     @classmethod
     def read_document(cls, file_path: str) -> str:
         """
@@ -201,6 +253,8 @@ class DocumentProcessor:
             return cls.read_pdf(file_path)
         elif ext == '.docx':
             return cls.read_docx(file_path)
+        elif ext in ('.xlsx', '.xls'):
+            return cls.read_excel(file_path)
         else:
             raise ValueError(f"Unsupported file extension: {ext}")
 

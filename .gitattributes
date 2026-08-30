@@ -1,2 +1,28 @@
-# Auto detect text files and perform LF normalization
-* text=auto
+# Normalize line endings: all text files checkout as LF regardless of platform.
+* text=auto eol=lf
+
+# Source & config files (explicit, belt and braces)
+*.py    text eol=lf
+*.js    text eol=lf
+*.html  text eol=lf
+*.css   text eol=lf
+*.json  text eol=lf
+*.md    text eol=lf
+*.txt   text eol=lf
+*.bat   text eol=crlf
+*.ps1   text eol=crlf
+
+# Binary files must never be converted
+*.png   binary
+*.jpg   binary
+*.jpeg  binary
+*.gif   binary
+*.webp  binary
+*.ico   binary
+*.pdf   binary
+*.docx  binary
+*.xlsx  binary
+*.xls   binary
+*.db    binary
+*.sqlite binary
+*.exe   binary

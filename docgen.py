@@ -34,7 +34,9 @@ _CODE_RE = re.compile(r"`([^`]+?)`")
 def _add_inline_runs(paragraph, text: str) -> None:
     """Render inline **bold**, *italic*, `code` markers into runs."""
     # Tokenise into (text, bold, italic, code) chunks.
-    tokens: List[List] = [["", False, False, False]]
+    # Start with the whole text as one plain token; consume() then splits
+    # out bold/italic/code spans. A pure-plain paragraph stays whole.
+    tokens: List[List] = [[text, False, False, False]]
 
     def push(chunk_text, b=False, i=False, c=False):
         if not chunk_text:

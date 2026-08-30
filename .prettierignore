@@ -1,0 +1,17 @@
+# Never format these
+node_modules/
+data/
+uploads/
+generated/
+__pycache__/
+*.db
+*.pdf
+*.docx
+*.xlsx
+*.xls
+
+# Python files are handled by other tooling, not Prettier
+*.py
+
+# Packaging config kept as-is
+run.bat

@@ -5,13 +5,21 @@
 const API = '/api';
 
 /* ---------- tiny helpers ---------- */
-const $  = (sel, root = document) => root.querySelector(sel);
+const $ = (sel, root = document) => root.querySelector(sel);
 const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
 
 function escapeHtml(s) {
-    return String(s).replace(/[&<>"']/g, c => ({
-        '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
-    }[c]));
+    return String(s).replace(
+        /[&<>"']/g,
+        (c) =>
+            ({
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#39;',
+            })[c]
+    );
 }
 
 function toast(msg, type = '') {
@@ -63,19 +71,17 @@ function isConfigured() {
 function fillModelList(models) {
     // Fill the <datalist> so the user can pick, but the input stays editable.
     const datalist = $('#cfg-model-options');
-    datalist.innerHTML = (models || []).map(m =>
-        `<option value="${escapeHtml(m)}">`
-    ).join('');
+    datalist.innerHTML = (models || []).map((m) => `<option value="${escapeHtml(m)}">`).join('');
 }
 
 function fillSettingsForm() {
     const s = loadSettings();
-    $('#cfg-endpoint').value    = s.endpoint;
-    $('#cfg-api-key').value     = s.apiKey;
-    $('#cfg-model').value       = s.model || '';
+    $('#cfg-endpoint').value = s.endpoint;
+    $('#cfg-api-key').value = s.apiKey;
+    $('#cfg-model').value = s.model || '';
     $('#cfg-temperature').value = s.temperature;
-    $('#cfg-max-tokens').value  = s.maxTokens;
-    $('#cfg-top-k').value       = s.topK;
+    $('#cfg-max-tokens').value = s.maxTokens;
+    $('#cfg-top-k').value = s.topK;
     $('#cfg-system-prompt').value = s.systemPrompt || '';
     // Don't clobber datalist on every open; only refill if empty.
     if (!$('#cfg-model-options').children.length) fillModelList([]);
@@ -84,7 +90,7 @@ function fillSettingsForm() {
 // Fetch the model list from the user's endpoint (GET {base}/models)
 async function fetchModels() {
     const endpoint = $('#cfg-endpoint').value.trim();
-    const apiKey   = $('#cfg-api-key').value.trim();
+    const apiKey = $('#cfg-api-key').value.trim();
     if (!endpoint || !apiKey) {
         toast('请先填好 Endpoint 和 API Key', 'error');
         return;
@@ -114,10 +120,16 @@ async function fetchModels() {
 // Ping the endpoint with a 1-token completion to verify the credentials.
 async function testConnection() {
     const endpoint = $('#cfg-endpoint').value.trim();
-    const apiKey   = $('#cfg-api-key').value.trim();
-    const model    = $('#cfg-model').value.trim();
-    if (!endpoint || !apiKey) { toast('请先填好 Endpoint 和 API Key', 'error'); return; }
-    if (!model) { toast('请先填或选一个 Model', 'error'); return; }
+    const apiKey = $('#cfg-api-key').value.trim();
+    const model = $('#cfg-model').value.trim();
+    if (!endpoint || !apiKey) {
+        toast('请先填好 Endpoint 和 API Key', 'error');
+        return;
+    }
+    if (!model) {
+        toast('请先填或选一个 Model', 'error');
+        return;
+    }
     const btn = $('#test-connection');
     const original = btn.textContent;
     btn.disabled = true;
@@ -144,19 +156,19 @@ function bindSettingsModal() {
         fillSettingsForm();
         $('#settings-modal').hidden = false;
     });
-    $('#close-settings').addEventListener('click', () => $('#settings-modal').hidden = true);
+    $('#close-settings').addEventListener('click', () => ($('#settings-modal').hidden = true));
 
     $('#fetch-models').addEventListener('click', fetchModels);
     $('#test-connection').addEventListener('click', testConnection);
 
     $('#save-settings').addEventListener('click', () => {
         const s = {
-            endpoint:    $('#cfg-endpoint').value.trim(),
-            apiKey:      $('#cfg-api-key').value.trim(),
-            model:       $('#cfg-model').value.trim(),
+            endpoint: $('#cfg-endpoint').value.trim(),
+            apiKey: $('#cfg-api-key').value.trim(),
+            model: $('#cfg-model').value.trim(),
             temperature: parseFloat($('#cfg-temperature').value) || 0.4,
-            maxTokens:   parseInt($('#cfg-max-tokens').value, 10) || 4096,
-            topK:        parseInt($('#cfg-top-k').value, 10) || 5,
+            maxTokens: parseInt($('#cfg-max-tokens').value, 10) || 4096,
+            topK: parseInt($('#cfg-top-k').value, 10) || 5,
             systemPrompt: ($('#cfg-system-prompt').value || '').trim(),
         };
         if (!s.endpoint || !s.apiKey || !s.model) {
@@ -180,14 +192,14 @@ function bindSettingsModal() {
    Tabs
    ============================================================ */
 function bindTabs() {
-    $$('.nav-tab').forEach(tab => {
+    $$('.nav-tab').forEach((tab) => {
         tab.addEventListener('click', () => {
             const name = tab.dataset.tab;
-            $$('.nav-tab').forEach(t => t.classList.toggle('is-active', t === tab));
-            $$('.tab').forEach(s => s.classList.toggle('is-active', s.dataset.tab === name));
+            $$('.nav-tab').forEach((t) => t.classList.toggle('is-active', t === tab));
+            $$('.tab').forEach((s) => s.classList.toggle('is-active', s.dataset.tab === name));
         });
     });
-    $('.nav-logo').addEventListener('click', e => {
+    $('.nav-logo').addEventListener('click', (e) => {
         e.preventDefault();
         $('.nav-tab[data-tab="knowledge"]').click();
     });
@@ -201,21 +213,27 @@ function bindUpload() {
     const input = $('#file-input');
 
     dz.addEventListener('click', () => input.click());
-    dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('is-dragover'); });
+    dz.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        dz.classList.add('is-dragover');
+    });
     dz.addEventListener('dragleave', () => dz.classList.remove('is-dragover'));
-    dz.addEventListener('drop', e => {
+    dz.addEventListener('drop', (e) => {
         e.preventDefault();
         dz.classList.remove('is-dragover');
         if (e.dataTransfer.files?.length) uploadFiles(e.dataTransfer.files);
     });
-    input.addEventListener('change', () => { if (input.files?.length) uploadFiles(input.files); });
+    input.addEventListener('change', () => {
+        if (input.files?.length) uploadFiles(input.files);
+    });
 }
 
 async function uploadFiles(fileList) {
     const status = $('#upload-status');
     const files = Array.from(fileList);
     status.hidden = false;
-    let ok = 0, fail = 0;
+    let ok = 0,
+        fail = 0;
 
     for (const f of files) {
         status.className = 'upload-status info';
@@ -255,10 +273,11 @@ async function loadDocs() {
         }
         const totalChunks = docs.reduce((s, d) => s + d.chunk_count, 0);
         meta.textContent = `${docs.length} 篇 · ${totalChunks} 段`;
-        list.innerHTML = docs.map(d => {
-            const ext = (d.filename.split('.').pop() || 'doc').slice(0, 4);
-            const size = `${d.chunk_count} 段 · ${new Date(d.created_at).toLocaleString()}`;
-            return `
+        list.innerHTML = docs
+            .map((d) => {
+                const ext = (d.filename.split('.').pop() || 'doc').slice(0, 4);
+                const size = `${d.chunk_count} 段 · ${new Date(d.created_at).toLocaleString()}`;
+                return `
               <div class="doc-row">
                 <span class="doc-icon">${escapeHtml(ext)}</span>
                 <div class="doc-meta-main">
@@ -267,8 +286,11 @@ async function loadDocs() {
                 </div>
                 <button class="doc-del" data-name="${escapeHtml(d.filename)}">删除</button>
               </div>`;
-        }).join('');
-        $$('.doc-del').forEach(btn => btn.addEventListener('click', () => deleteDoc(btn.dataset.name)));
+            })
+            .join('');
+        $$('.doc-del').forEach((btn) =>
+            btn.addEventListener('click', () => deleteDoc(btn.dataset.name))
+        );
     } catch (e) {
         list.innerHTML = `<div class="empty">加载失败：${escapeHtml(e.message)}</div>`;
     }
@@ -293,28 +315,43 @@ function renderMarkdown(md) {
     // Escape first
     let s = escapeHtml(md);
     // Code blocks ```...```
-    s = s.replace(/```([\s\S]*?)```/g, (_, code) => `<pre><code>${code.replace(/^\n/, '')}</code></pre>`);
+    s = s.replace(
+        /```([\s\S]*?)```/g,
+        (_, code) => `<pre><code>${code.replace(/^\n/, '')}</code></pre>`
+    );
     // Inline code
     s = s.replace(/`([^`\n]+?)`/g, '<code>$1</code>');
     // Headings
-    s = s.replace(/^### (.+)$/gm, '<h3>$1</h3>')
-         .replace(/^## (.+)$/gm, '<h2>$1</h2>')
-         .replace(/^# (.+)$/gm, '<h1>$1</h1>');
+    s = s
+        .replace(/^### (.+)$/gm, '<h3>$1</h3>')
+        .replace(/^## (.+)$/gm, '<h2>$1</h2>')
+        .replace(/^# (.+)$/gm, '<h1>$1</h1>');
     // Bold / italic
-    s = s.replace(/\*\*([^*\n]+?)\*\*/g, '<strong>$1</strong>')
-         .replace(/(^|[^*])\*([^*\n]+?)\*(?!\*)/g, '$1<em>$2</em>');
+    s = s
+        .replace(/\*\*([^*\n]+?)\*\*/g, '<strong>$1</strong>')
+        .replace(/(^|[^*])\*([^*\n]+?)\*(?!\*)/g, '$1<em>$2</em>');
     // Links [text](url)
-    s = s.replace(/\[([^\]]+?)\]\((https?:\/\/[^\s)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+    s = s.replace(
+        /\[([^\]]+?)\]\((https?:\/\/[^\s)]+)\)/g,
+        '<a href="$2" target="_blank" rel="noopener">$1</a>'
+    );
     // Blockquote
     s = s.replace(/^&gt; (.+)$/gm, '<blockquote>$1</blockquote>');
     // Tables
-    s = s.replace(/((?:^\|.*\|\s*\n)+)/gm, table => {
+    s = s.replace(/((?:^\|.*\|\s*\n)+)/gm, (table) => {
         const lines = table.trim().split('\n');
         if (lines.length < 2) return table;
-        const cells = line => line.replace(/^\||\|$/g, '').split('|').map(c => c.trim());
+        const cells = (line) =>
+            line
+                .replace(/^\||\|$/g, '')
+                .split('|')
+                .map((c) => c.trim());
         const head = cells(lines[0]);
         const body = lines.slice(2).map(cells);
-        let html = '<table><thead><tr>' + head.map(c => `<th>${c}</th>`).join('') + '</tr></thead><tbody>';
+        let html =
+            '<table><thead><tr>' +
+            head.map((c) => `<th>${c}</th>`).join('') +
+            '</tr></thead><tbody>';
         for (const row of body) {
             html += '<tr>' + row.map((c, i) => `<td>${c || ''}</td>`).join('') + '</tr>';
         }
@@ -323,7 +360,9 @@ function renderMarkdown(md) {
     // Lists & paragraphs
     const lines = s.split('\n');
     const out = [];
-    let inUl = false, inOl = false, para = [];
+    let inUl = false,
+        inOl = false,
+        para = [];
 
     const flushPara = () => {
         if (para.length) {
@@ -332,34 +371,65 @@ function renderMarkdown(md) {
         }
     };
     const closeLists = () => {
-        if (inUl) { out.push('</ul>'); inUl = false; }
-        if (inOl) { out.push('</ol>'); inOl = false; }
+        if (inUl) {
+            out.push('</ul>');
+            inUl = false;
+        }
+        if (inOl) {
+            out.push('</ol>');
+            inOl = false;
+        }
     };
 
     for (const ln of lines) {
         const t = ln.trim();
-        if (!t) { flushPara(); closeLists(); continue; }
-        if (/^<h[123]>/.test(t) || /^<pre>/.test(t) || /^<blockquote>/.test(t) || /^<table>/.test(t)) {
-            flushPara(); closeLists(); out.push(t); continue;
+        if (!t) {
+            flushPara();
+            closeLists();
+            continue;
+        }
+        if (
+            /^<h[123]>/.test(t) ||
+            /^<pre>/.test(t) ||
+            /^<blockquote>/.test(t) ||
+            /^<table>/.test(t)
+        ) {
+            flushPara();
+            closeLists();
+            out.push(t);
+            continue;
         }
         const ul = t.match(/^[-*]\s+(.+)$/);
         const ol = t.match(/^\d+\.\s+(.+)$/);
         if (ul) {
             flushPara();
-            if (inOl) { out.push('</ol>'); inOl = false; }
-            if (!inUl) { out.push('<ul>'); inUl = true; }
+            if (inOl) {
+                out.push('</ol>');
+                inOl = false;
+            }
+            if (!inUl) {
+                out.push('<ul>');
+                inUl = true;
+            }
             out.push('<li>' + ul[1] + '</li>');
         } else if (ol) {
             flushPara();
-            if (inUl) { out.push('</ul>'); inUl = false; }
-            if (!inOl) { out.push('<ol>'); inOl = true; }
+            if (inUl) {
+                out.push('</ul>');
+                inUl = false;
+            }
+            if (!inOl) {
+                out.push('<ol>');
+                inOl = true;
+            }
             out.push('<li>' + ol[1] + '</li>');
         } else {
             closeLists();
             para.push(t);
         }
     }
-    flushPara(); closeLists();
+    flushPara();
+    closeLists();
     return out.join('\n');
 }
 
@@ -369,7 +439,7 @@ function renderMarkdown(md) {
 const chatHistory = []; // {role, content}
 
 function bindChat() {
-    const form  = $('#chat-form');
+    const form = $('#chat-form');
     const input = $('#chat-input');
     const empty = $('#chat-empty');
     const thread = $('#chat-thread');
@@ -379,7 +449,7 @@ function bindChat() {
         input.style.height = 'auto';
         input.style.height = Math.min(input.scrollHeight, 140) + 'px';
     });
-    input.addEventListener('keydown', e => {
+    input.addEventListener('keydown', (e) => {
         if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault();
             form.requestSubmit();
@@ -387,10 +457,12 @@ function bindChat() {
     });
 
     // Suggestion chips
-    $$('.chip').forEach(c => c.addEventListener('click', () => {
-        input.value = c.dataset.q;
-        form.requestSubmit();
-    }));
+    $$('.chip').forEach((c) =>
+        c.addEventListener('click', () => {
+            input.value = c.dataset.q;
+            form.requestSubmit();
+        })
+    );
 
     // Clear conversation
     const clearBtn = $('#clear-chat');
@@ -410,14 +482,16 @@ function bindChat() {
                         <button class="chip" data-q="写三条可以追问的方向">给我追问的方向</button>
                     </div>
                 </div>`;
-            $$('.chip').forEach(c => c.addEventListener('click', () => {
-                input.value = c.dataset.q;
-                form.requestSubmit();
-            }));
+            $$('.chip').forEach((c) =>
+                c.addEventListener('click', () => {
+                    input.value = c.dataset.q;
+                    form.requestSubmit();
+                })
+            );
         });
     }
 
-    form.addEventListener('submit', async e => {
+    form.addEventListener('submit', async (e) => {
         e.preventDefault();
         const q = input.value.trim();
         if (!q) return;
@@ -469,7 +543,9 @@ function bindChat() {
 
             if (!resp.ok) {
                 let detail = '';
-                try { detail = (await resp.json()).detail; } catch {}
+                try {
+                    detail = (await resp.json()).detail;
+                } catch {}
                 throw new Error(detail || `HTTP ${resp.status}`);
             }
 
@@ -545,24 +621,32 @@ function attachSources(msgEl, results) {
     details.className = 'msg-sources';
     details.innerHTML = `
       <summary>引用了 ${results.length} 段知识库</summary>
-      ${results.map(r => `
+      ${results
+          .map(
+              (r) => `
         <div class="src-item">
-          <div class="src-name">${escapeHtml(r.filename)} · 相似度 ${(r.similarity*100).toFixed(0)}%</div>
+          <div class="src-name">${escapeHtml(r.filename)} · 相似度 ${(r.similarity * 100).toFixed(0)}%</div>
           <div class="src-text">${escapeHtml(r.content).slice(0, 240)}${r.content.length > 240 ? '…' : ''}</div>
-        </div>`).join('')}
+        </div>`
+          )
+          .join('')}
     `;
     msgEl.appendChild(details);
 }
 
 function parseSSE(chunk) {
-    let event = 'message', dataStr = '';
+    let event = 'message',
+        dataStr = '';
     for (const line of chunk.split('\n')) {
         if (line.startsWith('event:')) event = line.slice(6).trim();
         else if (line.startsWith('data:')) dataStr += line.slice(5).trim();
     }
     if (!dataStr) return null;
-    try { return { event, data: JSON.parse(dataStr) }; }
-    catch { return null; }
+    try {
+        return { event, data: JSON.parse(dataStr) };
+    } catch {
+        return null;
+    }
 }
 
 /* ============================================================
@@ -597,7 +681,10 @@ function bindGenerate() {
     previewBtn.addEventListener('click', async () => {
         const body = await gatherPayload(true);
         if (!body) return;
-        if (!body.prompt) { toast('请填写写作要求', 'error'); return; }
+        if (!body.prompt) {
+            toast('请填写写作要求', 'error');
+            return;
+        }
         const pv = $('#gen-preview');
         pv.innerHTML = '<div class="empty"><span class="spinner"></span> 大模型正在打草稿…</div>';
         status.textContent = '生成中…';
@@ -619,11 +706,14 @@ function bindGenerate() {
         }
     });
 
-    form.addEventListener('submit', async e => {
+    form.addEventListener('submit', async (e) => {
         e.preventDefault();
         const body = await gatherPayload(false);
         if (!body) return;
-        if (!body.prompt) { toast('请填写写作要求', 'error'); return; }
+        if (!body.prompt) {
+            toast('请填写写作要求', 'error');
+            return;
+        }
         const btn = form.querySelector('button[type="submit"]');
         btn.disabled = true;
         const original = btn.textContent;
@@ -637,7 +727,9 @@ function bindGenerate() {
             });
             if (!r.ok) {
                 let detail = '';
-                try { detail = (await r.json()).detail; } catch {}
+                try {
+                    detail = (await r.json()).detail;
+                } catch {}
                 throw new Error(detail || `HTTP ${r.status}`);
             }
             const blob = await r.blob();
@@ -648,8 +740,10 @@ function bindGenerate() {
 
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
-            a.href = url; a.download = filename;
-            document.body.appendChild(a); a.click();
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
             a.remove();
             URL.revokeObjectURL(url);
             status.textContent = `已下载 ${filename}`;
@@ -689,7 +783,9 @@ document.addEventListener('DOMContentLoaded', () => {
         if (params.get('settings') === '1' || params.get('settings') === 'true') {
             $('#open-settings').click();
         }
-    } catch (e) { /* ignore */ }
+    } catch (e) {
+        /* ignore */
+    }
 
     if (!isConfigured()) {
         setTimeout(() => {
