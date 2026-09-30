@@ -8,6 +8,9 @@ const API = '/api';
 const $ = (sel, root = document) => root.querySelector(sel);
 const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
 
+/** i18n translate — uses AtlasI18n if available, falls back to key. */
+const t = (key, vars) => (window.AtlasI18n ? window.AtlasI18n.t(key, vars) : key);
+
 function escapeHtml(s) {
     return String(s).replace(
         /[&<>"']/g,
@@ -92,13 +95,13 @@ async function fetchModels() {
     const endpoint = $('#cfg-endpoint').value.trim();
     const apiKey = $('#cfg-api-key').value.trim();
     if (!endpoint || !apiKey) {
-        toast('请先填好 Endpoint 和 API Key', 'error');
+        toast(t('ask.error.fetch.models.first'), 'error');
         return;
     }
     const btn = $('#fetch-models');
     const original = btn.textContent;
     btn.disabled = true;
-    btn.innerHTML = '<span class="spinner"></span> 拉取中…';
+    btn.innerHTML = '<span class="spinner"></span> ' + t('ask.fetching');
     try {
         const r = await fetch(`${API}/models`, {
             method: 'POST',
@@ -108,9 +111,9 @@ async function fetchModels() {
         const j = await r.json();
         if (!r.ok) throw new Error(j.detail || `HTTP ${r.status}`);
         fillModelList(j.models);
-        toast(`已获取 ${j.count} 个模型`, 'success');
+        toast(t('kb.upload.count', { n: j.count }), 'success');
     } catch (e) {
-        toast(`获取失败：${e.message}`, 'error');
+        toast(t('kb.upload.fetch.fail', { msg: e.message }), 'error');
     } finally {
         btn.disabled = false;
         btn.textContent = original;
@@ -123,17 +126,17 @@ async function testConnection() {
     const apiKey = $('#cfg-api-key').value.trim();
     const model = $('#cfg-model').value.trim();
     if (!endpoint || !apiKey) {
-        toast('请先填好 Endpoint 和 API Key', 'error');
+        toast(t('ask.error.fetch.models.first'), 'error');
         return;
     }
     if (!model) {
-        toast('请先填或选一个 Model', 'error');
+        toast(t('ask.error.need.model'), 'error');
         return;
     }
     const btn = $('#test-connection');
     const original = btn.textContent;
     btn.disabled = true;
-    btn.innerHTML = '<span class="spinner"></span> 测试中…';
+    btn.innerHTML = '<span class="spinner"></span> ' + t('ask.testing');
     try {
         const r = await fetch(`${API}/test`, {
             method: 'POST',
@@ -142,9 +145,9 @@ async function testConnection() {
         });
         const j = await r.json();
         if (!r.ok) throw new Error(j.detail || `HTTP ${r.status}`);
-        toast(`连接成功：${j.message || 'OK'}`, 'success');
+        toast(t('ask.conn.ok', { msg: j.message || 'OK' }), 'success');
     } catch (e) {
-        toast(`连接失败：${e.message}`, 'error');
+        toast(t('ask.conn.fail', { msg: e.message }), 'error');
     } finally {
         btn.disabled = false;
         btn.textContent = original;
@@ -172,19 +175,19 @@ function bindSettingsModal() {
             systemPrompt: ($('#cfg-system-prompt').value || '').trim(),
         };
         if (!s.endpoint || !s.apiKey || !s.model) {
-            toast('请把 Endpoint / API Key / Model 都填好', 'error');
+            toast(t('ask.error.save.all'), 'error');
             return;
         }
         saveSettings(s);
         $('#settings-modal').hidden = true;
-        toast('配置已保存', 'success');
+        toast(t('ask.saved'), 'success');
     });
 
     $('#reset-settings').addEventListener('click', () => {
-        if (!confirm('清空所有配置？')) return;
+        if (!confirm(t('ask.clear.confirm2'))) return;
         localStorage.removeItem(SETTINGS_KEY);
         fillSettingsForm();
-        toast('已清空', 'success');
+        toast(t('ask.cleared'), 'success');
     });
 }
 
@@ -237,26 +240,28 @@ async function uploadFiles(fileList) {
 
     for (const f of files) {
         status.className = 'upload-status info';
-        status.textContent = `正在处理 ${f.name} …`;
+        status.textContent = t('kb.upload.processing', { name: f.name });
         const fd = new FormData();
         fd.append('file', f);
         try {
             const r = await fetch(`${API}/upload`, { method: 'POST', body: fd });
             const j = await r.json();
-            if (!r.ok) throw new Error(j.detail || '上传失败');
+            if (!r.ok) throw new Error(j.detail || t('kb.upload.fail'));
             ok++;
         } catch (e) {
             fail++;
             status.className = 'upload-status error';
-            status.textContent = `${f.name}: ${e.message}`;
+            status.textContent = t('kb.upload.fail.item', { name: f.name, msg: e.message });
             await loadDocs();
             return;
         }
     }
 
     status.className = 'upload-status success';
-    status.textContent = `已上传 ${ok} 个文件${fail ? `，失败 ${fail} 个` : ''}`;
-    toast(`已上传 ${ok} 个文件`, 'success');
+    status.textContent = fail
+        ? t('kb.upload.done.withfail', { n: ok, m: fail })
+        : t('kb.upload.done', { n: ok });
+    toast(t('kb.upload.done', { n: ok }), 'success');
     await loadDocs();
 }
 
@@ -267,16 +272,17 @@ async function loadDocs() {
         const r = await fetch(`${API}/documents`);
         const docs = await r.json();
         if (!docs.length) {
-            list.innerHTML = '<div class="empty">还没有文档，先上传一份试试</div>';
-            meta.textContent = '0 篇';
+            list.innerHTML = '<div class="empty">' + escapeHtml(t('kb.list.empty')) + '</div>';
+            meta.textContent = '0 ' + t('kb.list.unit');
             return;
         }
         const totalChunks = docs.reduce((s, d) => s + d.chunk_count, 0);
-        meta.textContent = `${docs.length} 篇 · ${totalChunks} 段`;
+        meta.textContent = `${docs.length} ${t('kb.list.unit')} · ${totalChunks} ${t('kb.list.unit.chunks')}`;
+        const unitChunks = t('kb.list.unit.chunks');
         list.innerHTML = docs
             .map((d) => {
                 const ext = (d.filename.split('.').pop() || 'doc').slice(0, 4);
-                const size = `${d.chunk_count} 段 · ${new Date(d.created_at).toLocaleString()}`;
+                const size = `${d.chunk_count} ${unitChunks} · ${new Date(d.created_at).toLocaleString()}`;
                 return `
               <div class="doc-row">
                 <span class="doc-icon">${escapeHtml(ext)}</span>
@@ -284,7 +290,7 @@ async function loadDocs() {
                     <div class="doc-name">${escapeHtml(d.filename)}</div>
                     <div class="doc-sub">${escapeHtml(size)}</div>
                 </div>
-                <button class="doc-del" data-name="${escapeHtml(d.filename)}">删除</button>
+                <button class="doc-del" data-name="${escapeHtml(d.filename)}">${escapeHtml(t('kb.doc.delete'))}</button>
               </div>`;
             })
             .join('');
@@ -292,16 +298,16 @@ async function loadDocs() {
             btn.addEventListener('click', () => deleteDoc(btn.dataset.name))
         );
     } catch (e) {
-        list.innerHTML = `<div class="empty">加载失败：${escapeHtml(e.message)}</div>`;
+        list.innerHTML = `<div class="empty">${escapeHtml(t('kb.list.empty.fail', { msg: e.message }))}</div>`;
     }
 }
 
 async function deleteDoc(name) {
-    if (!confirm(`删除「${name}」？`)) return;
+    if (!confirm(t('kb.doc.delete.confirm', { name }))) return;
     try {
         const r = await fetch(`${API}/documents/${encodeURIComponent(name)}`, { method: 'DELETE' });
-        if (!r.ok) throw new Error((await r.json()).detail || '删除失败');
-        toast('已删除', 'success');
+        if (!r.ok) throw new Error((await r.json()).detail || t('kb.doc.delete.fail'));
+        toast(t('kb.doc.deleted'), 'success');
         await loadDocs();
     } catch (e) {
         toast(e.message, 'error');
@@ -468,18 +474,18 @@ function bindChat() {
     const clearBtn = $('#clear-chat');
     if (clearBtn) {
         clearBtn.addEventListener('click', () => {
-            if (!confirm('清空当前对话？')) return;
+            if (!confirm(t('ask.clear.confirm'))) return;
             chatHistory.length = 0;
             const thread = $('#chat-thread');
             thread.innerHTML = '';
             thread.innerHTML = `
                 <div class="chat-empty" id="chat-empty">
-                    <div class="chat-empty-icon">✦</div>
-                    <p>提问吧，我会先去翻你的知识库</p>
+                    <div class="chat-empty-icon">${escapeHtml(t('ask.empty.icon'))}</div>
+                    <p>${escapeHtml(t('ask.empty.tip'))}</p>
                     <div class="chat-suggest">
-                        <button class="chip" data-q="总结一下知识库里都讲了什么">总结一下知识库</button>
-                        <button class="chip" data-q="列出所有提到的核心概念">列出核心概念</button>
-                        <button class="chip" data-q="写三条可以追问的方向">给我追问的方向</button>
+                        <button class="chip" data-q="${escapeHtml(t('ask.chip.1.q'))}">${escapeHtml(t('ask.chip.1.label'))}</button>
+                        <button class="chip" data-q="${escapeHtml(t('ask.chip.2.q'))}">${escapeHtml(t('ask.chip.2.label'))}</button>
+                        <button class="chip" data-q="${escapeHtml(t('ask.chip.3.q'))}">${escapeHtml(t('ask.chip.3.label'))}</button>
                     </div>
                 </div>`;
             $$('.chip').forEach((c) =>
@@ -497,7 +503,7 @@ function bindChat() {
         if (!q) return;
 
         if (!isConfigured()) {
-            toast('请先在右上角配置 API Key', 'error');
+            toast(t('ask.need.config'), 'error');
             $('#open-settings').click();
             return;
         }
@@ -576,7 +582,7 @@ function bindChat() {
 
             if (!buf) {
                 bubble.classList.remove('msg-cursor');
-                bubble.innerHTML = '<span class="empty" style="padding:8px;">（空回复）</span>';
+                bubble.innerHTML = '<span class="empty" style="padding:8px;">' + escapeHtml(t('ask.empty.reply')) + '</span>';
             }
             chatHistory.push({ role: 'assistant', content: buf });
 
@@ -607,8 +613,9 @@ function appendMsg(role, text) {
     const thread = $('#chat-thread');
     const wrap = document.createElement('div');
     wrap.className = `msg msg-${role}`;
+    const roleLabel = role === 'user' ? t('ask.role.user') : t('ask.role.ai');
     wrap.innerHTML = `
-      <div class="msg-role">${role === 'user' ? '你' : '知图'}</div>
+      <div class="msg-role">${escapeHtml(roleLabel)}</div>
       <div class="msg-bubble">${role === 'user' ? escapeHtml(text).replace(/\n/g, '<br>') : ''}</div>
     `;
     thread.appendChild(wrap);
@@ -620,12 +627,12 @@ function attachSources(msgEl, results) {
     const details = document.createElement('details');
     details.className = 'msg-sources';
     details.innerHTML = `
-      <summary>引用了 ${results.length} 段知识库</summary>
+      <summary>${escapeHtml(t('ask.sources.summary', { n: results.length }))}</summary>
       ${results
           .map(
               (r) => `
         <div class="src-item">
-          <div class="src-name">${escapeHtml(r.filename)} · 相似度 ${(r.similarity * 100).toFixed(0)}%</div>
+          <div class="src-name">${escapeHtml(r.filename)} · ${escapeHtml(t('ask.source.similarity', { pct: (r.similarity * 100).toFixed(0) }))}</div>
           <div class="src-text">${escapeHtml(r.content).slice(0, 240)}${r.content.length > 240 ? '…' : ''}</div>
         </div>`
           )
@@ -660,12 +667,12 @@ function bindGenerate() {
     async function gatherPayload(forPreview) {
         const s = loadSettings();
         if (!isConfigured()) {
-            toast('请先在右上角配置 API Key', 'error');
+            toast(t('ask.need.config'), 'error');
             $('#open-settings').click();
             return null;
         }
         return {
-            title: $('#gen-title').value.trim() || '知图 Document',
+            title: $('#gen-title').value.trim() || t('gen.fallback.title'),
             prompt: $('#gen-prompt').value.trim(),
             top_k: s.topK,
             use_knowledge: $('#use-knowledge-gen').checked,
@@ -682,12 +689,12 @@ function bindGenerate() {
         const body = await gatherPayload(true);
         if (!body) return;
         if (!body.prompt) {
-            toast('请填写写作要求', 'error');
+            toast(t('gen.need.prompt'), 'error');
             return;
         }
         const pv = $('#gen-preview');
-        pv.innerHTML = '<div class="empty"><span class="spinner"></span> 大模型正在打草稿…</div>';
-        status.textContent = '生成中…';
+        pv.innerHTML = '<div class="empty"><span class="spinner"></span> ' + escapeHtml(t('gen.drafting')) + '</div>';
+        status.textContent = t('gen.status.gen');
         try {
             const r = await fetch(`${API}/generate-doc-preview`, {
                 method: 'POST',
@@ -695,14 +702,14 @@ function bindGenerate() {
                 body: JSON.stringify(body),
             });
             const j = await r.json();
-            if (!r.ok) throw new Error(j.detail || '预览失败');
+            if (!r.ok) throw new Error(j.detail || t('gen.preview.fail'));
             pv.innerHTML = renderMarkdown(j.markdown);
-            $('#gen-preview-meta').textContent = `${j.markdown.length} 字`;
-            status.textContent = '草稿已生成';
-            toast('预览已生成', 'success');
+            $('#gen-preview-meta').textContent = t('gen.meta.chars', { n: j.markdown.length });
+            status.textContent = t('gen.status.drafted');
+            toast(t('gen.preview.ok'), 'success');
         } catch (e) {
             pv.innerHTML = `<div class="empty" style="color:var(--danger);">${escapeHtml(e.message)}</div>`;
-            status.textContent = '失败';
+            status.textContent = t('gen.status.fail');
         }
     });
 
@@ -711,14 +718,14 @@ function bindGenerate() {
         const body = await gatherPayload(false);
         if (!body) return;
         if (!body.prompt) {
-            toast('请填写写作要求', 'error');
+            toast(t('gen.need.prompt'), 'error');
             return;
         }
         const btn = form.querySelector('button[type="submit"]');
         btn.disabled = true;
         const original = btn.textContent;
-        btn.innerHTML = '<span class="spinner"></span> 生成中…';
-        status.textContent = '生成并渲染 Word…';
+        btn.innerHTML = '<span class="spinner"></span> ' + escapeHtml(t('gen.status.gen'));
+        status.textContent = t('gen.status.word');
         try {
             const r = await fetch(`${API}/generate-doc`, {
                 method: 'POST',
@@ -746,13 +753,13 @@ function bindGenerate() {
             a.click();
             a.remove();
             URL.revokeObjectURL(url);
-            status.textContent = `已下载 ${filename}`;
-            toast('文档已下载', 'success');
+            status.textContent = t('gen.status.downloaded', { name: filename });
+            toast(t('gen.toast.downloaded'), 'success');
 
             // Also update preview from the same response if possible
             // (Server returns docx bytes; preview stays as-is unless we re-call preview)
         } catch (e) {
-            status.textContent = '失败';
+            status.textContent = t('gen.status.fail');
             toast(e.message, 'error');
         } finally {
             btn.disabled = false;
@@ -765,31 +772,63 @@ function bindGenerate() {
    Boot
    ============================================================ */
 document.addEventListener('DOMContentLoaded', () => {
-    bindTabs();
-    bindSettingsModal();
-    bindUpload();
-    bindChat();
-    bindGenerate();
-    loadDocs();
-
-    // Deep-link: ?view=ask|generate|knowledge and/or ?settings=1
-    try {
-        const params = new URLSearchParams(location.search);
-        const view = params.get('view');
-        if (view && ['knowledge', 'ask', 'generate'].includes(view)) {
-            const tab = document.querySelector(`.nav-tab[data-tab="${view}"]`);
-            if (tab) tab.click();
+    // i18n init (must run before any UI strings render).
+    // AtlasI18n loads via defer alongside main.js; if not yet ready, defer slightly.
+    const startBoot = () => {
+        if (window.AtlasI18n && AtlasI18n.initSwitcher) {
+            AtlasI18n.initSwitcher();
         }
-        if (params.get('settings') === '1' || params.get('settings') === 'true') {
-            $('#open-settings').click();
-        }
-    } catch (e) {
-        /* ignore */
-    }
 
-    if (!isConfigured()) {
-        setTimeout(() => {
-            toast('提示：右上角齿轮里填一下 API Key', '');
-        }, 600);
+        bindTabs();
+        bindSettingsModal();
+        bindUpload();
+        bindChat();
+        bindGenerate();
+        loadDocs();
+
+        // Deep-link: ?view=ask|generate|knowledge and/or ?settings=1
+        try {
+            const params = new URLSearchParams(location.search);
+            const view = params.get('view');
+            if (view && ['knowledge', 'ask', 'generate'].includes(view)) {
+                const tab = document.querySelector(`.nav-tab[data-tab="${view}"]`);
+                if (tab) tab.click();
+            }
+            if (params.get('settings') === '1' || params.get('settings') === 'true') {
+                $('#open-settings').click();
+            }
+        } catch (e) {
+            /* ignore */
+        }
+
+        if (!isConfigured()) {
+            setTimeout(() => {
+                toast(t('ask.boot.hint'), '');
+            }, 600);
+        }
+
+        // Re-apply language whenever it changes (in case dynamic DOM was generated between).
+        window.addEventListener('langchange', () => {
+            // The chat chips & suggestion buttons use dynamic data-q; refresh current empty state if present.
+            const chatEmpty = document.getElementById('chat-empty');
+            if (chatEmpty) {
+                chatEmpty.querySelector('.chat-empty-icon').textContent = t('ask.empty.icon');
+                chatEmpty.querySelector('p').textContent = t('ask.empty.tip');
+                const chips = chatEmpty.querySelectorAll('.chip');
+                const labels = [t('ask.chip.1.label'), t('ask.chip.2.label'), t('ask.chip.3.label')];
+                const qs = [t('ask.chip.1.q'), t('ask.chip.2.q'), t('ask.chip.3.q')];
+                chips.forEach((c, i) => {
+                    if (labels[i]) c.textContent = labels[i];
+                    if (qs[i]) c.setAttribute('data-q', qs[i]);
+                });
+            }
+        });
+    };
+
+    if (window.AtlasI18n) {
+        startBoot();
+    } else {
+        // i18n.js is deferred & loaded before main.js; this branch is rare.
+        window.addEventListener('load', startBoot);
     }
 });

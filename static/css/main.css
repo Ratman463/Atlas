@@ -1138,3 +1138,70 @@ textarea.input {
         transform: rotate(360deg);
     }
 }
+
+/* ============================================================
+   Language switcher (Apple-style pill segmented control)
+   Lives in the top nav, between tabs and settings gear.
+   ============================================================ */
+.nav-lang {
+    display: inline-flex;
+    align-items: center;
+    height: 30px;
+    padding: 0 5px;
+    margin-left: auto;
+    margin-right: 8px;
+    border-radius: var(--r-pill);
+    background: var(--bg-soft);
+    border: 1px solid var(--border-soft);
+    font-size: 12.5px;
+    font-weight: 500;
+    letter-spacing: -0.01em;
+    user-select: none;
+}
+.lang-btn {
+    appearance: none;
+    border: 0;
+    background: transparent;
+    color: var(--text-mute);
+    font: inherit;
+    padding: 0 10px;
+    height: 22px;
+    line-height: 1;
+    border-radius: var(--r-pill);
+    cursor: pointer;
+    transition: color 0.2s ease, background 0.2s ease;
+}
+.lang-btn:hover {
+    color: var(--text);
+}
+.lang-btn.is-active {
+    color: #ffffff;
+    background: var(--text);
+}
+.lang-btn.is-active:hover {
+    color: #ffffff;
+}
+.lang-divider {
+    color: var(--border);
+    font-weight: 400;
+    user-select: none;
+    pointer-events: none;
+}
+
+/* Mobile: keep switcher compact, don't crowd the nav */
+@media (max-width: 720px) {
+    .nav-lang {
+        height: 28px;
+        margin-right: 4px;
+    }
+    .lang-btn {
+        padding: 0 8px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .lang-btn,
+    .nav-lang {
+        transition: none;
+    }
+}
